@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  api:
+    build: ./api
+    container_name: easyportal-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - easyportal-network
+
+  camera:
+    build: ./camera
+    container_name: easyportal-camera
+    ports:
+      - "8000:8000"
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/vchiq:/dev/vchiq
+    volumes:
+      - /run/udev:/run/udev:ro
+    privileged: true
+    restart: unless-stopped
+    networks:
+      - easyportal-network
+
+networks:
+  easyportal-network:
+    driver: bridge
