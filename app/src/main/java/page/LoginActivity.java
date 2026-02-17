@@ -1,6 +1,7 @@
 package page;
 
 import android.content.Intent;
+import android.content.SharedPreferences; // IMPUT : Pour sauvegarder le token
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -35,6 +36,7 @@ public class LoginActivity extends AppCompatActivity {
     private boolean isPasswordVisible = false;
 
     // --- LIENS DU SERVEUR ---
+    // Assure-toi que l'IP est correcte
     private static final String URL_LOGIN_ADMIN = "http://172.16.15.29:3000/api/auth/login/admin";
     private static final String URL_LOGIN_USER = "http://172.16.15.29:3000/api/auth/login/user";
 
@@ -91,28 +93,47 @@ public class LoginActivity extends AppCompatActivity {
                     try {
                         JSONObject jsonObject = new JSONObject(response);
 
-                        // Si le serveur dit que c'est un succès (d'après ton image, il y a un champ "success": true)
-                        // On vérifie soit "success":true, soit l'absence d'erreur
+                        // Vérification basique du succès
                         boolean success = jsonObject.has("success") && jsonObject.getBoolean("success");
 
+                        // Parfois l'API renvoie juste le token sans "success: true", donc on vérifie aussi s'il n'y a pas d'erreur
                         if (success || !jsonObject.has("error")) {
 
                             String nom = "";
                             String prenom = "";
+                            String token = ""; // Variable pour stocker le token
 
-                            // --- CORRECTION : ON LIT DANS "DATA" PUIS DANS "USER" ---
+                            // --- 1. RECUPERATION DES DONNEES ---
                             if (jsonObject.has("data")) {
                                 JSONObject dataObj = jsonObject.getJSONObject("data");
 
+                                // Récupération du token s'il est dans "data"
+                                token = dataObj.optString("token", "");
+
                                 if (dataObj.has("user")) {
                                     JSONObject userObj = dataObj.getJSONObject("user");
-                                    // Lecture sécurisée des champs
                                     nom = userObj.optString("nom", "");
                                     prenom = userObj.optString("prenom", "");
                                 }
                             }
-                            // ---------------------------------------------------------
 
+                            // Si le token n'était pas dans "data", on regarde à la racine (certaines API font ça)
+                            if (token.isEmpty()) {
+                                token = jsonObject.optString("token", "");
+                            }
+
+                            // --- 2. SAUVEGARDE DU TOKEN (CRUCIAL POUR L'OUVERTURE DU PORTAIL) ---
+                            if (!token.isEmpty()) {
+                                SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+                                SharedPreferences.Editor editor = prefs.edit();
+                                editor.putString("token", token);
+                                editor.apply(); // Sauvegarde asynchrone
+                                Log.d("LOGIN", "Token sauvegardé : " + token);
+                            } else {
+                                Log.w("LOGIN", "Aucun token trouvé dans la réponse !");
+                            }
+
+                            // --- 3. NAVIGATION ---
                             Toast.makeText(LoginActivity.this, "Connexion réussie !", Toast.LENGTH_SHORT).show();
 
                             if (isAdmin) {
@@ -120,7 +141,6 @@ public class LoginActivity extends AppCompatActivity {
                                 startActivity(intent);
                             } else {
                                 Intent intent = new Intent(LoginActivity.this, User1Activity.class);
-                                // On envoie les infos trouvées à la page User
                                 intent.putExtra("USER_NOM", nom);
                                 intent.putExtra("USER_PRENOM", prenom);
                                 startActivity(intent);
@@ -133,22 +153,17 @@ public class LoginActivity extends AppCompatActivity {
 
                     } catch (JSONException e) {
                         e.printStackTrace();
-                        Log.e("JSON_ERROR", "Erreur lecture JSON");
-                        // En cas de doute, on laisse entrer (mode dégradé)
-                        if (isAdmin) {
-                            startActivity(new Intent(LoginActivity.this, AdminActivity.class));
-                        } else {
-                            startActivity(new Intent(LoginActivity.this, User1Activity.class));
-                        }
-                        finish();
+                        Log.e("JSON_ERROR", "Erreur lecture JSON: " + e.getMessage());
+                        Toast.makeText(LoginActivity.this, "Erreur format de réponse serveur", Toast.LENGTH_SHORT).show();
                     }
                 },
                 error -> {
                     if (error.networkResponse != null && error.networkResponse.statusCode == 401) {
                         Toast.makeText(LoginActivity.this, "Identifiants incorrects", Toast.LENGTH_LONG).show();
                     } else {
-                        Toast.makeText(LoginActivity.this, "Erreur réseau", Toast.LENGTH_LONG).show();
+                        Toast.makeText(LoginActivity.this, "Erreur réseau / Serveur injoignable", Toast.LENGTH_LONG).show();
                     }
+                    error.printStackTrace();
                 }) {
             @Override
             protected Map<String, String> getParams() {
