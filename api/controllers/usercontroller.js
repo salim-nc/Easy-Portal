@@ -127,7 +127,6 @@ exports.updateUser = async (req, res) => {
     const { id } = req.params;
     const { nom, prenom, email, telephone, mot_de_passe } = req.body;
 
-    // Vérifier si l'utilisateur existe
     const [existingUsers] = await db.query('SELECT * FROM utilisateurs WHERE id = ?', [id]);
     
     if (existingUsers.length === 0) {
@@ -137,7 +136,6 @@ exports.updateUser = async (req, res) => {
       });
     }
 
-    // Vérifier si l'email est déjà utilisé par un autre utilisateur
     if (email) {
       const [emailCheck] = await db.query(
         'SELECT id FROM utilisateurs WHERE email = ? AND id != ?',
@@ -152,7 +150,6 @@ exports.updateUser = async (req, res) => {
       }
     }
 
-    // Construire la requête de mise à jour
     let updateFields = [];
     let values = [];
 
@@ -192,7 +189,6 @@ exports.updateUser = async (req, res) => {
       values
     );
 
-    // Logger la modification
     await db.query(
       'INSERT INTO logs (action, utilisateurs_id) VALUES (?, ?)',
       [`Utilisateur modifié: ${email || existingUsers[0].email}`, req.user.id]
@@ -211,12 +207,12 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// Supprimer un utilisateur
+// Supprimer un utilisateur (CORRIGÉ POUR ÉVITER ERREUR 500 / FOREIGN KEY)
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Vérifier si l'utilisateur existe
+    // 1. Vérifier si l'utilisateur existe
     const [existingUsers] = await db.query('SELECT * FROM utilisateurs WHERE id = ?', [id]);
     
     if (existingUsers.length === 0) {
@@ -228,27 +224,31 @@ exports.deleteUser = async (req, res) => {
 
     const user = existingUsers[0];
 
-    // Supprimer les plaques associées (ou les mettre à NULL)
+    // 2. Détacher les plaques associées (on met l'ID à NULL au lieu de supprimer la plaque)
     await db.query('UPDATE plaques SET utilisateurs_id = NULL WHERE utilisateurs_id = ?', [id]);
 
-    // Supprimer l'utilisateur
+    // 3. Détacher les logs associés (Correction de l'erreur FOREIGN KEY)
+    // On anonymise les logs pour garder l'historique des actions
+    await db.query('UPDATE logs SET utilisateurs_id = NULL WHERE utilisateurs_id = ?', [id]);
+
+    // 4. Supprimer l'utilisateur de la table principale
     await db.query('DELETE FROM utilisateurs WHERE id = ?', [id]);
 
-    // Logger la suppression
+    // 5. Logger l'action de suppression (par l'admin connecté)
     await db.query(
       'INSERT INTO logs (action, utilisateurs_id) VALUES (?, ?)',
-      [`Utilisateur supprimé: ${user.email}`, req.user.id]
+      [`Utilisateur supprimé (anonymisation des logs): ${user.email}`, req.user.id]
     );
 
     res.json({
       success: true,
-      message: 'Utilisateur supprimé avec succès'
+      message: 'Utilisateur supprimé avec succès et logs anonymisés'
     });
   } catch (error) {
     console.error('Erreur lors de la suppression de l\'utilisateur:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur serveur'
+      message: 'Erreur serveur lors de la suppression'
     });
   }
 };
@@ -259,12 +259,7 @@ exports.getMyProfile = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    let query, table;
-    if (userRole === 'admin') {
-      table = 'administrateurs';
-    } else {
-      table = 'utilisateurs';
-    }
+    let table = userRole === 'admin' ? 'administrateurs' : 'utilisateurs';
 
     const [users] = await db.query(
       `SELECT id, nom, prenom, email, telephone FROM ${table} WHERE id = ?`,
@@ -278,7 +273,6 @@ exports.getMyProfile = async (req, res) => {
       });
     }
 
-    // Si c'est un utilisateur normal, récupérer ses plaques
     let plaques = [];
     if (userRole === 'user') {
       const [userPlaques] = await db.query(
@@ -314,7 +308,6 @@ exports.updateMyProfile = async (req, res) => {
 
     const table = userRole === 'admin' ? 'administrateurs' : 'utilisateurs';
 
-    // Si changement de mot de passe, vérifier l'ancien
     if (mot_de_passe) {
       if (!old_password) {
         return res.status(400).json({
@@ -334,7 +327,6 @@ exports.updateMyProfile = async (req, res) => {
       }
     }
 
-    // Construire la requête de mise à jour
     let updateFields = [];
     let values = [];
 
