@@ -3,6 +3,7 @@ package page;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.android.volley.Request;
@@ -15,7 +16,7 @@ import easyportal.com.R;
 
 public class User1Activity extends AppCompatActivity {
 
-    // --- NOUVELLE ADRESSE (Port 3000) ---
+    // --- ADRESSE SERVEUR ---
     private static final String URL_OUVERTURE = "http://172.16.15.29:3000/api/portal/open";
 
     @Override
@@ -23,8 +24,23 @@ public class User1Activity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user1);
 
+        // 1. On récupère les éléments de l'interface
+        TextView tvWelcome = findViewById(R.id.tvWelcome);
         Button btnOpen = findViewById(R.id.btnOpenGateUser);
         Button btnLogout = findViewById(R.id.btnLogoutUser);
+
+        // 2. --- MODIFICATION : ON NE RECUPERE QUE LE PRENOM ---
+        String prenom = getIntent().getStringExtra("USER_PRENOM");
+
+        // Si on a un prénom, on l'affiche
+        if (prenom != null && !prenom.isEmpty()) {
+            // Affiche juste : "Bonjour, Alice"
+            tvWelcome.setText("Bonjour, " + prenom);
+        } else {
+            // Sinon (si ça bug ou si c'est vide), on met le défaut
+            tvWelcome.setText("Bonjour, Utilisateur");
+        }
+        // ------------------------------------------------------
 
         // Action du bouton OUVRIR
         btnOpen.setOnClickListener(v -> {
@@ -45,18 +61,14 @@ public class User1Activity extends AppCompatActivity {
 
         StringRequest stringRequest = new StringRequest(Request.Method.POST, URL_OUVERTURE,
                 response -> {
-                    // Si le serveur répond (200 OK)
                     Toast.makeText(User1Activity.this, "Commande réussie : Portail en mouvement !", Toast.LENGTH_LONG).show();
                 },
                 error -> {
-                    // Si erreur
                     Toast.makeText(User1Activity.this, "Erreur connexion : Vérifie le Wifi et le Port 3000", Toast.LENGTH_LONG).show();
                 }) {
             @Override
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
-                // Si ton API a besoin d'un token ou d'un ID user, c'est ici qu'on l'ajoute.
-                // Pour l'instant, on envoie juste la requête POST vide.
                 return params;
             }
         };
