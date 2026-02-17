@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F3F4F6">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="40dp">
+
+            <TextView
+                android:id="@+id/tvWelcome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bonjour, Utilisateur"
+                android:textColor="#000000"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bienvenue sur votre espace"
+                android:textSize="16sp"
+                android:textColor="#004aa2"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            app:cardBackgroundColor="@android:color/white"
+            android:layout_marginBottom="40dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="32dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Contrôle d'accès"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="#000000"
+                    android:layout_marginBottom="24dp"/>
+
+                <ImageView
+                    android:id="@+id/ivStatus"
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:src="@android:drawable/ic_lock_idle_lock"
+                    app:tint="#004aa2"
+                    android:layout_marginBottom="24dp"/>
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Appuyez pour ouvrir"
+                    android:textColor="#555555"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="32dp"/>
+
+                <Button
+                    android:id="@+id/btnOpenGateUser"
+                    android:layout_width="match_parent"
+                    android:layout_height="65dp"
+                    android:text="OUVRIR LE PORTAIL"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="#004aa2"
+                    android:textColor="@android:color/white"
+                    android:drawableStart="@android:drawable/ic_menu_upload"
+                    android:drawableTint="#FFFFFF"
+                    android:paddingStart="20dp"
+                    android:drawablePadding="10dp"
+                    app:cornerRadius="12dp"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <Button
+            android:id="@+id/btnLogoutUser"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:text="Se déconnecter"
+            android:textSize="16sp"
+            android:backgroundTint="#EF4444"
+            android:textColor="@android:color/white"
+            android:drawableStart="@android:drawable/ic_lock_power_off"
+            android:drawableTint="#FFFFFF"
+            android:paddingStart="20dp"
+            android:drawablePadding="10dp"
+            app:cornerRadius="12dp"/>
+
+    </LinearLayout>
+</ScrollView>
