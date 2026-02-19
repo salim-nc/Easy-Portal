@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Logs - EasyPortal</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body onload="verifyToken(); initLogs();">
+
+<header>
+    <div class="logo">
+        <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
+        <span>EasyPortal</span>
+    </div>
+    <nav>
+        <button onclick="window.location.href='dashboard.html'">Dashboard</button>
+        <button id="logoutBtn">Déconnexion</button>
+    </nav>
+</header>
+
+<div style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+
+    <h2 style="margin-bottom: 20px;">Logs d'activité</h2>
+    
+    <div id="messageContainer"></div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+        <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="loadLogs()">
+            Actualiser
+        </button>
+        <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="clearLogs()">
+            Effacer tout
+        </button>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+        <input type="text" id="filterUser" placeholder="Filtrer par utilisateur..." onkeyup="applyFilters()" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
+        <input type="text" id="filterAction" placeholder="Filtrer par action..." onkeyup="applyFilters()" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
+        <input type="date" id="filterDate" onchange="applyFilters()" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table id="logsTable" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f3f4f6;">
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Date</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Heure</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Utilisateur</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Action</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Plaque</th>
+                </tr>
+            </thead>
+            <tbody id="logsBody"></tbody>
+        </table>
+        <div id="emptyState" style="text-align: center; padding: 40px; color: #999; display: none;">
+            <p>Aucun log à afficher</p>
+        </div>
+    </div>
+
+</div>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/activity.js"></script>
+<script src="assets/js/logs-enhanced.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            window.location.replace("index.html");
+        });
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Export CSV - EasyPortal</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body onload="verifyToken();">
+
+<header>
+    <div class="logo">
+        <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
+        <span>EasyPortal</span>
+    </div>
+    <nav>
+        <button onclick="window.location.href='dashboard.html'">Dashboard</button>
+        <button id="logoutBtn">Déconnexion</button>
+    </nav>
+</header>
+
+<div style="padding: 40px; max-width: 600px; margin: 0 auto;">
+
+    <h2 style="margin-bottom: 30px;">Export CSV</h2>
+
+    <div id="messageContainer"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+
+        <!-- EXPORT AUTORISÉES -->
+        <div style="background: white; border-radius: 10px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.08);">
+            <h3 style="margin-bottom: 8px; color: #333;">Plaques autorisées</h3>
+            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Exporte la liste de toutes les plaques autorisées au format CSV.</p>
+            <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="exportAutorisees()">
+                Export CSV Autorisées
+            </button>
+        </div>
+
+        <!-- EXPORT INTERDITES -->
+        <div style="background: white; border-radius: 10px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.08);">
+            <h3 style="margin-bottom: 8px; color: #333;">Plaques interdites</h3>
+            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Exporte la liste de toutes les plaques interdites au format CSV.</p>
+            <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="exportInterdites()">
+                Export CSV Interdites
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/activity.js"></script>
+
+<script>
+function showMessage(message, type) {
+    const el = document.getElementById("messageContainer");
+    el.innerText = message;
+    el.style.background = type === "success" ? "#d1fae5" : "#fee2e2";
+    el.style.color = type === "success" ? "#065f46" : "#7f1d1d";
+    el.style.borderLeft = type === "success" ? "4px solid #10b981" : "4px solid #ef4444";
+    el.style.padding = "15px";
+    el.style.borderRadius = "8px";
+    el.style.marginBottom = "20px";
+    el.style.display = "block";
+    setTimeout(() => { el.style.display = "none"; }, 5000);
+}
+
+function telechargerCSV(csv, filename) {
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.setAttribute("href", URL.createObjectURL(blob));
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+async function exportAutorisees() {
+    try {
+        const response = await fetch(API_BASE + "/plaques/export-csv", {
+            method: "GET",
+            headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
+        });
+
+        if (!response.ok) throw new Error("Erreur lors de l'export");
+
+        const csv = await response.text();
+
+        if (!csv || csv.trim() === "") { showMessage("Aucune plaque autorisée à exporter.", "error"); return; }
+
+        telechargerCSV(csv, "plaques_autorisees.csv");
+        showMessage("✓ Export autorisées réussi !", "success");
+
+    } catch (err) {
+        showMessage("Erreur export autorisées : " + err.message, "error");
+    }
+}
+
+async function exportInterdites() {
+    try {
+        const response = await fetch(API_BASE + "/plaques/export-csv-blacklist", {
+            method: "GET",
+            headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
+        });
+
+        if (!response.ok) throw new Error("Erreur lors de l'export");
+
+        const csv = await response.text();
+
+        if (!csv || csv.trim() === "") { showMessage("Aucune plaque interdite à exporter.", "error"); return; }
+
+        telechargerCSV(csv, "plaques_interdites.csv");
+        showMessage("✓ Export interdites réussi !", "success");
+
+    } catch (err) {
+        showMessage("Erreur export interdites : " + err.message, "error");
+    }
+}
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            window.location.replace("index.html");
+        });
+    }
+});
+</script>
+
+</body>
+</html>

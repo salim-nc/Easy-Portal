@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gestion des Utilisateurs - EasyPortal</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body onload="verifyToken(); initUsers();">
+
+<header>
+    <div class="logo">
+        <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
+        <span>EasyPortal</span>
+    </div>
+    <nav>
+        <button onclick="window.location.href='dashboard.html'">Dashboard</button>
+        <button id="logoutBtn">Déconnexion</button>
+    </nav>
+</header>
+
+<div style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+
+    <h2 style="margin-bottom: 20px;">Gestion des Utilisateurs</h2>
+    
+    <div id="messageContainer"></div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+        <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="openAddUserModal()">
+            Ajouter utilisateur
+        </button>
+        <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="loadUsers()">
+            Actualiser
+        </button>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table id="usersTable" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f3f4f6;">
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Email</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Nom</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Prénom</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Type d'accès</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+        </table>
+        <div id="emptyState" style="text-align: center; padding: 40px; color: #999; display: none;">
+            <p>Aucun utilisateur</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL AJOUTER UTILISATEUR -->
+<div id="modalAddUser" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div style="background-color: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <h3 style="margin-bottom: 20px;">Ajouter un utilisateur</h3>
+        <form id="formAddUser">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Email</label>
+                <input type="email" id="emailUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nom</label>
+                <input type="text" id="nomUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Prénom</label>
+                <input type="text" id="prenomUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Type d'accès</label>
+                <select id="typeAccesUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+                    <option value="TOTAL">TOTAL</option>
+                    <option value="REDUIT">RÉDUIT</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Mot de passe</label>
+                <input type="password" id="passwordUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" style="padding: 10px 20px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="closeModal('modalAddUser')">Annuler</button>
+                <button type="submit" style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Ajouter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL MODIFIER UTILISATEUR -->
+<div id="modalEditUser" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div style="background-color: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <h3 style="margin-bottom: 20px;">Modifier utilisateur</h3>
+        <form id="formEditUser">
+            <input type="hidden" id="editUserId">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Email</label>
+                <input type="email" id="editEmailUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nom</label>
+                <input type="text" id="editNomUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Prénom</label>
+                <input type="text" id="editPrenomUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Type d'accès</label>
+                <select id="editTypeAccesUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+                    <option value="TOTAL">TOTAL</option>
+                    <option value="REDUIT">RÉDUIT</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nouveau mot de passe (optionnel)</label>
+                <input type="password" id="editPasswordUser" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" style="padding: 10px 20px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="closeModal('modalEditUser')">Annuler</button>
+                <button type="submit" style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Modifier</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- LES SCRIPTS DANS LE BON ORDRE -->
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/activity.js"></script>
+<script src="assets/js/admin-users.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            window.location.replace("index.html");
+        });
+    }
+});
+</script>
+
+</body>
+</html>

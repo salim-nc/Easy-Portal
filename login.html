@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connexion - EasyPortal</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .password-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-container input {
+            width: 100%;
+            padding-right: 70px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: #5f2eea;
+            padding: 5px 10px;
+            font-weight: 600;
+        }
+
+        .toggle-password:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
+        <span>EasyPortal</span>
+    </div>
+    <nav>
+        <button onclick="window.location.href='index.html'">Accueil</button>
+    </nav>
+</header>
+
+<div class="center">
+    <div class="card login-card">
+        <h2>Connexion Administrateur</h2>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Entrez votre email" required>
+            </div>
+
+            <div class="input-group">
+                <label for="password">Mot de passe</label>
+                <div class="password-container">
+                    <input type="password" id="password" placeholder="Entrez votre mot de passe" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword()">Afficher</button>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn">Se connecter</button>
+            <p id="error" class="error-msg" style="color: red; display: none;"></p>
+        </form>
+    </div>
+</div>
+
+<!-- LES SCRIPTS DANS LE BON ORDRE -->
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/activity.js"></script>
+
+<script>
+    function togglePassword() {
+        const passwordInput = document.getElementById("password");
+        const toggleBtn = document.querySelector(".toggle-password");
+        
+        if (passwordInput.type === "password") {
+            // Démasquer le mdp
+            passwordInput.type = "text";
+            toggleBtn.textContent = "Masquer";
+        } else {
+            // Masquer le mdp
+            passwordInput.type = "password";
+            toggleBtn.textContent = "Afficher";
+        }
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const errorEl = document.getElementById("error");
+
+        errorEl.style.display = "none";
+
+        if (!email || !password) {
+            errorEl.innerText = "Veuillez remplir tous les champs.";
+            errorEl.style.display = "block";
+            return;
+        }
+
+        try {
+            const data = await apiRequest("/auth/login/admin", "POST", { email, password });
+
+            console.log("Réponse API login:", data);
+
+            const token = data.token || (data.data && data.data.token) || data.accessToken;
+
+            if (token) {
+                localStorage.setItem("token", token);
+
+                if (typeof trackActivity === "function") {
+                    trackActivity("login");
+                }
+
+                window.location.href = "dashboard.html";
+            } else {
+                errorEl.innerText = "Identifiants incorrects.";
+                errorEl.style.display = "block";
+            }
+        } catch (err) {
+            console.error("Erreur login:", err);
+            errorEl.innerText = "Erreur de connexion au serveur.";
+            errorEl.style.display = "block";
+        }
+    });
+</script>
+
+</body>
+</html>

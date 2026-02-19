@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body onload="verifyToken()">
+
+<header>
+    <div class="logo">
+        <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
+        <span>EasyPortal</span>
+    </div>
+    <nav>
+        <button onclick="window.location.href='logs.html'">Logs</button>
+        <button onclick="window.location.href='admin-users.html'">Création Utilisateurs</button>
+        <button onclick="window.location.href='import.html'">Import CSV</button>
+        <button onclick="window.location.href='export.html'">Export CSV</button>
+        <button id="logoutBtn">Déconnexion</button>
+    </nav>
+</header>
+
+<div class="dashboard-container">
+    <button class="open-btn" onclick="openPortal()">Ouvrir le portail</button>
+    
+    <div class="video-card">
+        <div class="video-wrapper">
+            <iframe src="http://172.16.15.29:8000/stream.html"></iframe>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/activity.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            window.location.replace("index.html");
+        });
+    }
+});
+</script>
+
+</body>
+</html>
