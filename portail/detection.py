@@ -15,8 +15,8 @@ import re
 # ===== CONFIGURATION =====
 SERIAL_PORT = "/dev/ttyACM0"
 SERIAL_BAUD = 9600
-API_URL = "http://localhost:3000"
-CAMERA_URL = "http://localhost:8000/stream.mjpg"
+API_URL = "http://api:3000"
+CAMERA_URL = "http://camera:8000/stream.mjpg"
 MIN_CONTOUR_AREA = 5000  # Taille minimale du contour pour etre un vehicule
 
 # ===== CAPTURE IMAGE DEPUIS FLUX CAMERA =====
