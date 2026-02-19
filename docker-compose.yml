@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  easyportal:
+    build: .
+    ports:
+      - "3001:3001"
+    container_name: easyportal-app
