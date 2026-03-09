@@ -1,17 +1,4 @@
 // ==============================
-// CONFIGURATION - EXEMPLE
-// ==============================
-// INSTRUCTIONS:
-// 1. Duplique ce fichier et nomme-le "config.js"
-// 2. Remplace les valeurs placeholders par tes vraies données
-// 3. Ne JAMAIS push config.js sur GitHub !
-// 4. Le .gitignore empêche automatiquement le push de config.js
-
-// URL DE L'API (remplace par ton adresse réelle)
-const API_BASE = "http://YOUR_API_URL:3000/api";
-
-// EXEMPLE RÉEL (à adapter):
-// const API_BASE = "http://172.16.15.29:3000/api";// ==============================
 // SÉCURITÉ - Fonction pour nettoyer les données (prévention XSS)
 // ==============================
 function sanitizeHTML(str) {
@@ -569,15 +556,17 @@ function downloadCSV(csv, filename) {
     document.body.removeChild(link);
 }
 
+// ==============================
+// AFFICHAGE DES MESSAGES - SANS DISPARITION
+// ==============================
 function showMessage(elementId, message, type) {
     const el = document.getElementById(elementId);
     if (!el) return;
 
     el.textContent = message;
     el.className = `message ${type}`;
-
-    // Auto-hide après 5 secondes
-    setTimeout(() => {
-        el.className = "message";
-    }, 5000);
+    el.style.display = "block";
+    
+    // Les messages restent affichés indéfiniment
+    // L'utilisateur doit les fermer manuellement ou recharger la page
 }

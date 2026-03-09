@@ -48,22 +48,34 @@
     <div class="card login-card">
         <h2>Connexion Administrateur</h2>
 
-        <form id="loginForm">
+        <form id="loginForm" novalidate>
             <div class="input-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" placeholder="Entrez votre email" required>
+                <input 
+                    type="email" 
+                    id="email" 
+                    placeholder="Entrez votre email" 
+                    required
+                    autocomplete="email"
+                    maxlength="255">
             </div>
 
             <div class="input-group">
                 <label for="password">Mot de passe</label>
                 <div class="password-container">
-                    <input type="password" id="password" placeholder="Entrez votre mot de passe" required>
-                    <button type="button" class="toggle-password" onclick="togglePassword()">Afficher</button>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="Entrez votre mot de passe" 
+                        required
+                        autocomplete="current-password"
+                        maxlength="255">
+                    <button type="button" class="toggle-password" onclick="togglePassword()" aria-label="Afficher/Masquer le mot de passe">Afficher</button>
                 </div>
             </div>
 
             <button type="submit" class="login-btn">Se connecter</button>
-            <p id="error" class="error-msg" style="color: red; display: none;"></p>
+            <p id="error" class="error-msg" style="color: red; display: none;" role="alert"></p>
         </form>
     </div>
 </div>
@@ -74,21 +86,42 @@
 <script src="assets/js/activity.js"></script>
 
 <script>
+    // ==============================
+    // SÉCURITÉ - Fonction pour masquer/afficher le mot de passe
+    // ==============================
     function togglePassword() {
         const passwordInput = document.getElementById("password");
         const toggleBtn = document.querySelector(".toggle-password");
         
         if (passwordInput.type === "password") {
-            // Démasquer le mdp
             passwordInput.type = "text";
             toggleBtn.textContent = "Masquer";
         } else {
-            // Masquer le mdp
             passwordInput.type = "password";
             toggleBtn.textContent = "Afficher";
         }
     }
 
+    // ==============================
+    // SÉCURITÉ - Fonction pour nettoyer les entrées (prévention XSS)
+    // ==============================
+    function sanitizeInput(input) {
+        const div = document.createElement('div');
+        div.textContent = input;
+        return div.innerHTML;
+    }
+
+    // ==============================
+    // SÉCURITÉ - Fonction pour valider l'email
+    // ==============================
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // ==============================
+    // GESTION DE LA CONNEXION
+    // ==============================
     document.getElementById("loginForm").addEventListener("submit", async function(e) {
         e.preventDefault();
 
@@ -97,37 +130,81 @@
         const errorEl = document.getElementById("error");
 
         errorEl.style.display = "none";
+        errorEl.textContent = "";
 
+        // ==============================
+        // VALIDATION CÔTÉ CLIENT
+        // ==============================
         if (!email || !password) {
-            errorEl.innerText = "Veuillez remplir tous les champs.";
+            errorEl.textContent = "Email ou mot de passe incorrect.";
+            errorEl.style.display = "block";
+            return;
+        }
+
+        // Validation du format email
+        if (!isValidEmail(email)) {
+            errorEl.textContent = "Email ou mot de passe incorrect.";
+            errorEl.style.display = "block";
+            return;
+        }
+
+        // Validation de la longueur du mot de passe
+        if (password.length < 6) {
+            errorEl.textContent = "Email ou mot de passe incorrect.";
             errorEl.style.display = "block";
             return;
         }
 
         try {
-            const data = await apiRequest("/auth/login/admin", "POST", { email, password });
+            // ==============================
+            // ENVOI SÉCURISÉ À L'API
+            // ==============================
+            const data = await apiRequest("/auth/login/admin", "POST", { 
+                email: email,
+                password: password
+            });
 
-            console.log("Réponse API login:", data);
-
+            // Récupérer le token
             const token = data.token || (data.data && data.data.token) || data.accessToken;
 
             if (token) {
+                // ==============================
+                // SÉCURITÉ - Stockage sécurisé du token
+                // ==============================
                 localStorage.setItem("token", token);
 
+                // Tracer l'activité
                 if (typeof trackActivity === "function") {
                     trackActivity("login");
                 }
 
-                window.location.href = "dashboard.html";
+                // Redirection sécurisée
+                window.location.replace("dashboard.html");
             } else {
-                errorEl.innerText = "Identifiants incorrects.";
+                // Message d'erreur générique (ne pas révéler si email ou mot de passe est incorrect)
+                errorEl.textContent = "Identifiants incorrects.";
                 errorEl.style.display = "block";
+                document.getElementById("closeError").style.display = "block"; // Bouton fermer visible
             }
         } catch (err) {
             console.error("Erreur login:", err);
-            errorEl.innerText = "Erreur de connexion au serveur.";
+            
+            // Message d'erreur générique pour ne pas donner d'info aux pirates
+            if (err.message.includes("Impossible de joindre")) {
+                errorEl.textContent = "Erreur de connexion au serveur.";
+            } else {
+                errorEl.textContent = "Erreur de connexion. Réessayez.";
+            }
             errorEl.style.display = "block";
+            document.getElementById("closeError").style.display = "block"; // Bouton fermer visible
         }
+    });
+
+    // ==============================
+    // SÉCURITÉ - Vider les champs sensibles en quittant la page
+    // ==============================
+    window.addEventListener("beforeunload", function() {
+        document.getElementById("password").value = "";
     });
 </script>
 

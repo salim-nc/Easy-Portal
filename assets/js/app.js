@@ -221,6 +221,24 @@ async function loadLogs() {
 }
 
 // ==============================
+// AFFICHAGE DES MESSAGES - MODIFIÉ POUR RESTER LONGTEMPS
+// ==============================
+function showMessage(elementId, message, type) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    el.textContent = message;
+    el.className = `message ${type}`;
+
+    // ==============================
+    // MODIFIÉ : Les messages restent 30 secondes (30000 ms)
+    // ==============================
+    setTimeout(() => {
+        el.className = "message";
+    }, 30000); // 30 secondes au lieu de 5 secondes
+}
+
+// ==============================
 // SÉCURITÉ - Déconnexion automatique après inactivité (optionnel)
 // ==============================
 let inactivityTimer;
