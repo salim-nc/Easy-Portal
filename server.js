@@ -3,11 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const server = http.createServer((req, res) => {
-    let filePath = path.join(__dirname, req.url);
+    let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
     
-    if (filePath.endsWith('/')) {
-        filePath = path.join(filePath, 'index.html');
-    }
+    console.log('Demande:', req.url, '-> Chemin:', filePath);
     
     const extname = path.extname(filePath);
     let contentType = 'text/html';
@@ -19,6 +17,7 @@ const server = http.createServer((req, res) => {
     
     fs.readFile(filePath, (err, data) => {
         if (err) {
+            console.log('Erreur:', err.message);
             res.writeHead(404);
             res.end('404 Not Found');
             return;

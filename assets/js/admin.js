@@ -1,85 +1,152 @@
 // ==============================
-// GESTION DES PLAQUES AUTORISÉES
+// CONFIGURATION - EXEMPLE
 // ==============================
+// INSTRUCTIONS:
+// 1. Duplique ce fichier et nomme-le "config.js"
+// 2. Remplace les valeurs placeholders par tes vraies données
+// 3. Ne JAMAIS push config.js sur GitHub !
+// 4. Le .gitignore empêche automatiquement le push de config.js
 
+// URL DE L'API (remplace par ton adresse réelle)
+const API_BASE = "http://YOUR_API_URL:3000/api";
+
+// EXEMPLE RÉEL (à adapter):
+// const API_BASE = "http://172.16.15.29:3000/api";// ==============================
+// SÉCURITÉ - Fonction pour nettoyer les données (prévention XSS)
+// ==============================
+function sanitizeHTML(str) {
+    if (!str) return "";
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ==============================
+// SÉCURITÉ - Validation des plaques d'immatriculation
+// ==============================
+function isValidPlate(plate) {
+    if (!plate) return false;
+    // Format: AA-123-BB ou variations
+    const plateRegex = /^[A-Z0-9\-]{2,10}$/i;
+    return plateRegex.test(plate) && plate.length <= 20;
+}
+
+// ==============================
+// SÉCURITÉ - Validation des noms
+// ==============================
+function isValidName(name) {
+    if (!name) return false;
+    // Pas de caractères spéciaux dangereux
+    const nameRegex = /^[a-zA-ZÀ-ÿ\s\-']{2,100}$/;
+    return nameRegex.test(name);
+}
+
+// ==============================
+// INITIALISATION SÉCURISÉE
+// ==============================
 async function initAdmin() {
+    // Vérifier l'authentification d'abord
+    if (!localStorage.getItem("token")) {
+        window.location.replace("login.html");
+        return;
+    }
+
     // Charger les données au démarrage
     await loadAutorisees();
     await loadInterdites();
 
-    // Event listeners pour import
-    document.getElementById("importAutorisees").addEventListener("change", handleImportAutorisees);
-    document.getElementById("importInterdites").addEventListener("change", handleImportInterdites);
+    // ==============================
+    // SÉCURITÉ - Event listeners sécurisés
+    // ==============================
+    const importAutorisees = document.getElementById("importAutorisees");
+    const importInterdites = document.getElementById("importInterdites");
+    const formAddAutorisee = document.getElementById("formAddAutorisee");
+    const formAddInterdite = document.getElementById("formAddInterdite");
 
-    // Event listeners pour les formulaires
-    document.getElementById("formAddAutorisee").addEventListener("submit", handleAddAutorisee);
-    document.getElementById("formAddInterdite").addEventListener("submit", handleAddInterdite);
+    if (importAutorisees) importAutorisees.addEventListener("change", handleImportAutorisees);
+    if (importInterdites) importInterdites.addEventListener("change", handleImportInterdites);
+    if (formAddAutorisee) formAddAutorisee.addEventListener("submit", handleAddAutorisee);
+    if (formAddInterdite) formAddInterdite.addEventListener("submit", handleAddInterdite);
 
     // Fermer modals en cliquant en dehors
     window.addEventListener("click", function(e) {
-        let modal = document.getElementById("modalAddAutorisee");
-        if (e.target === modal) closeModal("modalAddAutorisee");
-        
-        modal = document.getElementById("modalAddInterdite");
-        if (e.target === modal) closeModal("modalAddInterdite");
+        const modalAutorisee = document.getElementById("modalAddAutorisee");
+        const modalInterdite = document.getElementById("modalAddInterdite");
+
+        if (e.target === modalAutorisee) closeModal("modalAddAutorisee");
+        if (e.target === modalInterdite) closeModal("modalAddInterdite");
     });
 }
 
 // ==============================
-// CHARGER LES DONNÉES
+// CHARGER LES PLAQUES AUTORISÉES
 // ==============================
-
 async function loadAutorisees() {
     try {
         const data = await apiRequest("/plaques/export-csv", "GET", null, true);
         const plaques = Array.isArray(data) ? data : (data.data || []);
         
         const tbody = document.getElementById("bodyAutorisees");
+        if (!tbody) return;
+
         tbody.innerHTML = "";
 
         plaques.forEach((plaque, index) => {
             const tr = document.createElement("tr");
+            // ==============================
+            // SÉCURITÉ - Sanitizer les données avant insertion
+            // ==============================
             tr.innerHTML = `
-                <td>${plaque.nom || "-"}</td>
-                <td>${plaque.prenom || "-"}</td>
-                <td><span class="status-badge status-autorisee">${plaque.plaque1 || "-"}</span></td>
-                <td><span class="status-badge status-autorisee">${plaque.plaque2 || "-"}</span></td>
+                <td>${sanitizeHTML(plaque.nom || "-")}</td>
+                <td>${sanitizeHTML(plaque.prenom || "-")}</td>
+                <td><span class="status-badge status-autorisee">${sanitizeHTML(plaque.plaque1 || "-")}</span></td>
+                <td><span class="status-badge status-autorisee">${sanitizeHTML(plaque.plaque2 || "-")}</span></td>
                 <td>
-                    <button class="delete-btn" onclick="deleteAutorisee(${plaque.id || index})">Supprimer</button>
+                    <button class="delete-btn" onclick="deleteAutorisee(${sanitizeHTML(plaque.id || index)})">Supprimer</button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
 
-        document.getElementById("countAutorisees").innerText = plaques.length;
+        const countEl = document.getElementById("countAutorisees");
+        if (countEl) countEl.innerText = plaques.length;
     } catch (err) {
         showMessage("messageAuthAutorisees", "Erreur lors du chargement des plaques autorisées.", "error");
         console.error("Erreur loadAutorisees:", err);
     }
 }
 
+// ==============================
+// CHARGER LES PLAQUES INTERDITES
+// ==============================
 async function loadInterdites() {
     try {
         const data = await apiRequest("/plaques/export-csv-blacklist", "GET", null, true);
         const plaques = Array.isArray(data) ? data : (data.data || []);
         
         const tbody = document.getElementById("bodyInterdites");
+        if (!tbody) return;
+
         tbody.innerHTML = "";
 
         plaques.forEach((plaque, index) => {
             const tr = document.createElement("tr");
+            // ==============================
+            // SÉCURITÉ - Sanitizer les données
+            // ==============================
             tr.innerHTML = `
-                <td><span class="status-badge status-interdite">${plaque.plaque || "-"}</span></td>
-                <td>${plaque.motif || "-"}</td>
-                <td>${plaque.date_ajout || "-"}</td>
+                <td><span class="status-badge status-interdite">${sanitizeHTML(plaque.plaque || "-")}</span></td>
+                <td>${sanitizeHTML(plaque.motif || "-")}</td>
+                <td>${sanitizeHTML(plaque.date_ajout || "-")}</td>
                 <td>
-                    <button class="delete-btn" onclick="deleteInterdite(${plaque.id || index})">Supprimer</button>
+                    <button class="delete-btn" onclick="deleteInterdite(${sanitizeHTML(plaque.id || index)})">Supprimer</button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
 
-        document.getElementById("countInterdites").innerText = plaques.length;
+        const countEl = document.getElementById("countInterdites");
+        if (countEl) countEl.innerText = plaques.length;
     } catch (err) {
         showMessage("messageAuthInterdites", "Erreur lors du chargement des plaques interdites.", "error");
         console.error("Erreur loadInterdites:", err);
@@ -87,17 +154,30 @@ async function loadInterdites() {
 }
 
 // ==============================
-// IMPORT CSV
+// IMPORT CSV AUTORISÉES SÉCURISÉ
 // ==============================
-
 async function handleImportAutorisees(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    // ==============================
+    // SÉCURITÉ - Vérifier le type de fichier
+    // ==============================
+    if (!file.type.includes("text") && file.type !== "application/vnd.ms-excel") {
+        showMessage("messageAuthAutorisees", "Le fichier doit être un CSV.", "error");
+        return;
+    }
+
+    // Vérifier la taille (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showMessage("messageAuthAutorisees", "Le fichier est trop volumineux (max 5MB).", "error");
+        return;
+    }
+
     const progressBar = document.getElementById("progressAutorisees");
-    const progressFill = progressBar.querySelector(".progress-fill");
-    progressBar.classList.add("active");
-    progressFill.style.width = "0%";
+    const progressFill = progressBar?.querySelector(".progress-fill");
+    if (progressBar) progressBar.classList.add("active");
+    if (progressFill) progressFill.style.width = "0%";
 
     try {
         const text = await file.text();
@@ -115,11 +195,14 @@ async function handleImportAutorisees(event) {
                 plaque[header] = values[idx] || "";
             });
 
-            if (plaque.nom && plaque.plaque1) {
+            // ==============================
+            // SÉCURITÉ - Valider les données avant envoi
+            // ==============================
+            if (isValidName(plaque.nom) && isValidPlate(plaque.plaque1)) {
                 plaques.push(plaque);
             }
 
-            progressFill.style.width = ((i / lines.length) * 100) + "%";
+            if (progressFill) progressFill.style.width = ((i / lines.length) * 100) + "%";
         }
 
         // Envoyer à l'API
@@ -140,33 +223,47 @@ async function handleImportAutorisees(event) {
             throw new Error(data.message || "Erreur lors de l'import");
         }
 
-        progressFill.style.width = "100%";
+        if (progressFill) progressFill.style.width = "100%";
         showMessage("messageAuthAutorisees", `✓ ${plaques.length} plaque(s) importée(s) avec succès !`, "success");
         
-        // Réinitialiser l'input
         event.target.value = "";
         
-        // Recharger les données
         setTimeout(() => {
             loadAutorisees();
-            progressBar.classList.remove("active");
+            if (progressBar) progressBar.classList.remove("active");
         }, 500);
 
     } catch (err) {
-        showMessage("messageAuthAutorisees", "Erreur lors de l'import : " + err.message, "error");
+        showMessage("messageAuthAutorisees", "Erreur lors de l'import : " + sanitizeHTML(err.message), "error");
         console.error("Erreur import:", err);
-        document.getElementById("progressAutorisees").classList.remove("active");
+        if (progressBar) progressBar.classList.remove("active");
     }
 }
 
+// ==============================
+// IMPORT CSV INTERDITES SÉCURISÉ
+// ==============================
 async function handleImportInterdites(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    // ==============================
+    // SÉCURITÉ - Vérifier le type et la taille
+    // ==============================
+    if (!file.type.includes("text") && file.type !== "application/vnd.ms-excel") {
+        showMessage("messageAuthInterdites", "Le fichier doit être un CSV.", "error");
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        showMessage("messageAuthInterdites", "Le fichier est trop volumineux (max 5MB).", "error");
+        return;
+    }
+
     const progressBar = document.getElementById("progressInterdites");
-    const progressFill = progressBar.querySelector(".progress-fill");
-    progressBar.classList.add("active");
-    progressFill.style.width = "0%";
+    const progressFill = progressBar?.querySelector(".progress-fill");
+    if (progressBar) progressBar.classList.add("active");
+    if (progressFill) progressFill.style.width = "0%";
 
     try {
         const text = await file.text();
@@ -184,11 +281,14 @@ async function handleImportInterdites(event) {
                 plaque[header] = values[idx] || "";
             });
 
-            if (plaque.plaque) {
+            // ==============================
+            // SÉCURITÉ - Valider la plaque
+            // ==============================
+            if (isValidPlate(plaque.plaque)) {
                 plaques.push(plaque);
             }
 
-            progressFill.style.width = ((i / lines.length) * 100) + "%";
+            if (progressFill) progressFill.style.width = ((i / lines.length) * 100) + "%";
         }
 
         // Envoyer à l'API
@@ -209,29 +309,26 @@ async function handleImportInterdites(event) {
             throw new Error(data.message || "Erreur lors de l'import");
         }
 
-        progressFill.style.width = "100%";
-        showMessage("messageAuthInterdites", `✓ ${plaques.length} plaque(s) interdite(s) importée(s) avec succès !`, "success");
+        if (progressFill) progressFill.style.width = "100%";
+        showMessage("messageAuthInterdites", `✓ ${plaques.length} plaque(s) interdite(s) importée(s) !`, "success");
         
-        // Réinitialiser l'input
         event.target.value = "";
         
-        // Recharger les données
         setTimeout(() => {
             loadInterdites();
-            progressBar.classList.remove("active");
+            if (progressBar) progressBar.classList.remove("active");
         }, 500);
 
     } catch (err) {
-        showMessage("messageAuthInterdites", "Erreur lors de l'import : " + err.message, "error");
+        showMessage("messageAuthInterdites", "Erreur lors de l'import : " + sanitizeHTML(err.message), "error");
         console.error("Erreur import:", err);
-        document.getElementById("progressInterdites").classList.remove("active");
+        if (progressBar) progressBar.classList.remove("active");
     }
 }
 
 // ==============================
 // EXPORT CSV
 // ==============================
-
 async function exportAutorisees() {
     try {
         const response = await fetch(API_BASE + "/plaques/export-csv", {
@@ -253,18 +350,16 @@ async function exportAutorisees() {
             return;
         }
 
-        // Créer le CSV
         let csv = "nom;prenom;plaque1;plaque2\n";
         plaques.forEach(plaque => {
-            csv += `${plaque.nom};${plaque.prenom || ""};${plaque.plaque1};${plaque.plaque2 || ""}\n`;
+            csv += `${sanitizeHTML(plaque.nom)};${sanitizeHTML(plaque.prenom || "")};${sanitizeHTML(plaque.plaque1)};${sanitizeHTML(plaque.plaque2 || "")}\n`;
         });
 
-        // Télécharger le fichier
         downloadCSV(csv, "plaques_autorisees.csv");
         showMessage("messageAuthAutorisees", "✓ Export réussi !", "success");
 
     } catch (err) {
-        showMessage("messageAuthAutorisees", "Erreur lors de l'export : " + err.message, "error");
+        showMessage("messageAuthAutorisees", "Erreur lors de l'export : " + sanitizeHTML(err.message), "error");
         console.error("Erreur export:", err);
     }
 }
@@ -290,26 +385,23 @@ async function exportInterdites() {
             return;
         }
 
-        // Créer le CSV
         let csv = "Plaque;Motif;Date_ajout\n";
         plaques.forEach(plaque => {
-            csv += `${plaque.plaque};${plaque.motif || ""};${plaque.date_ajout || ""}\n`;
+            csv += `${sanitizeHTML(plaque.plaque)};${sanitizeHTML(plaque.motif || "")};${sanitizeHTML(plaque.date_ajout || "")}\n`;
         });
 
-        // Télécharger le fichier
         downloadCSV(csv, "plaques_interdites.csv");
         showMessage("messageAuthInterdites", "✓ Export réussi !", "success");
 
     } catch (err) {
-        showMessage("messageAuthInterdites", "Erreur lors de l'export : " + err.message, "error");
+        showMessage("messageAuthInterdites", "Erreur lors de l'export : " + sanitizeHTML(err.message), "error");
         console.error("Erreur export:", err);
     }
 }
 
 // ==============================
-// AJOUTER VIA FORMULAIRE
+// AJOUTER PLAQUE AUTORISÉE - SÉCURISÉ
 // ==============================
-
 async function handleAddAutorisee(e) {
     e.preventDefault();
 
@@ -318,8 +410,16 @@ async function handleAddAutorisee(e) {
     const plaque1 = document.getElementById("plaque1Autorisee").value.trim();
     const plaque2 = document.getElementById("plaque2Autorisee").value.trim();
 
-    if (!nom || !prenom || !plaque1) {
-        showMessage("messageAuthAutorisees", "Veuillez remplir les champs obligatoires.", "error");
+    // ==============================
+    // SÉCURITÉ - Validation stricte
+    // ==============================
+    if (!isValidName(nom) || !isValidName(prenom) || !isValidPlate(plaque1)) {
+        showMessage("messageAuthAutorisees", "Données invalides. Vérifiez les champs.", "error");
+        return;
+    }
+
+    if (plaque2 && !isValidPlate(plaque2)) {
+        showMessage("messageAuthAutorisees", "La plaque 2 est invalide.", "error");
         return;
     }
 
@@ -334,10 +434,13 @@ async function handleAddAutorisee(e) {
         await loadAutorisees();
 
     } catch (err) {
-        showMessage("messageAuthAutorisees", "Erreur : " + err.message, "error");
+        showMessage("messageAuthAutorisees", "Erreur : " + sanitizeHTML(err.message), "error");
     }
 }
 
+// ==============================
+// AJOUTER PLAQUE INTERDITE - SÉCURISÉ
+// ==============================
 async function handleAddInterdite(e) {
     e.preventDefault();
 
@@ -345,8 +448,11 @@ async function handleAddInterdite(e) {
     const motif = document.getElementById("motifInterdite").value.trim();
     const dateAjout = document.getElementById("dateInterdite").value;
 
-    if (!plaque || !motif || !dateAjout) {
-        showMessage("messageAuthInterdites", "Veuillez remplir tous les champs.", "error");
+    // ==============================
+    // SÉCURITÉ - Validation stricte
+    // ==============================
+    if (!isValidPlate(plaque) || !motif || motif.length < 3 || motif.length > 200 || !dateAjout) {
+        showMessage("messageAuthInterdites", "Veuillez remplir tous les champs correctement.", "error");
         return;
     }
 
@@ -363,14 +469,13 @@ async function handleAddInterdite(e) {
         await loadInterdites();
 
     } catch (err) {
-        showMessage("messageAuthInterdites", "Erreur : " + err.message, "error");
+        showMessage("messageAuthInterdites", "Erreur : " + sanitizeHTML(err.message), "error");
     }
 }
 
 // ==============================
-// SUPPRIMER
+// SUPPRIMER PLAQUES
 // ==============================
-
 async function deleteAutorisee(id) {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette plaque ?")) return;
 
@@ -379,7 +484,7 @@ async function deleteAutorisee(id) {
         showMessage("messageAuthAutorisees", "✓ Plaque supprimée !", "success");
         await loadAutorisees();
     } catch (err) {
-        showMessage("messageAuthAutorisees", "Erreur : " + err.message, "error");
+        showMessage("messageAuthAutorisees", "Erreur : " + sanitizeHTML(err.message), "error");
     }
 }
 
@@ -391,7 +496,7 @@ async function deleteInterdite(id) {
         showMessage("messageAuthInterdites", "✓ Plaque supprimée !", "success");
         await loadInterdites();
     } catch (err) {
-        showMessage("messageAuthInterdites", "Erreur : " + err.message, "error");
+        showMessage("messageAuthInterdites", "Erreur : " + sanitizeHTML(err.message), "error");
     }
 }
 
@@ -404,7 +509,7 @@ async function clearAllAutorisees() {
         showMessage("messageAuthAutorisees", "✓ Toutes les plaques ont été supprimées !", "success");
         await loadAutorisees();
     } catch (err) {
-        showMessage("messageAuthAutorisees", "Erreur : " + err.message, "error");
+        showMessage("messageAuthAutorisees", "Erreur : " + sanitizeHTML(err.message), "error");
     }
 }
 
@@ -417,32 +522,39 @@ async function clearAllInterdites() {
         showMessage("messageAuthInterdites", "✓ Toutes les plaques ont été supprimées !", "success");
         await loadInterdites();
     } catch (err) {
-        showMessage("messageAuthInterdites", "Erreur : " + err.message, "error");
+        showMessage("messageAuthInterdites", "Erreur : " + sanitizeHTML(err.message), "error");
     }
 }
 
 // ==============================
 // MODALS
 // ==============================
-
 function openAddAutoriseModal() {
-    document.getElementById("modalAddAutorisee").classList.add("active");
-    document.getElementById("nomAutorisee").focus();
+    const modal = document.getElementById("modalAddAutorisee");
+    if (modal) {
+        modal.classList.add("active");
+        const nomInput = document.getElementById("nomAutorisee");
+        if (nomInput) nomInput.focus();
+    }
 }
 
 function openAddInterditeModal() {
-    document.getElementById("modalAddInterdite").classList.add("active");
-    document.getElementById("plaqueInterdite").focus();
+    const modal = document.getElementById("modalAddInterdite");
+    if (modal) {
+        modal.classList.add("active");
+        const plaqueInput = document.getElementById("plaqueInterdite");
+        if (plaqueInput) plaqueInput.focus();
+    }
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove("active");
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove("active");
 }
 
 // ==============================
 // UTILITAIRES
 // ==============================
-
 function downloadCSV(csv, filename) {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -459,7 +571,9 @@ function downloadCSV(csv, filename) {
 
 function showMessage(elementId, message, type) {
     const el = document.getElementById(elementId);
-    el.innerText = message;
+    if (!el) return;
+
+    el.textContent = message;
     el.className = `message ${type}`;
 
     // Auto-hide après 5 secondes

@@ -1,14 +1,51 @@
 // ==============================
-// Requête API générique
+// SÉCURITÉ - Fonction pour nettoyer les données (prévention XSS)
+// ==============================
+function sanitizeHTML(str) {
+    if (!str) return "";
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ==============================
+// SÉCURITÉ - Vérifier si le token existe et valider
+// ==============================
+function checkTokenValidity() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        console.warn("Pas de token trouvé. Redirection vers login.");
+        window.location.replace("login.html");
+        return false;
+    }
+    return true;
+}
+
+// ==============================
+// REQUÊTE API GÉNÉRIQUE SÉCURISÉE
 // ==============================
 async function apiRequest(endpoint, method = "GET", body = null, auth = false) {
-    const headers = { "Content-Type": "application/json" };
+    // Vérifier que l'endpoint est valide
+    if (!endpoint || !endpoint.startsWith("/")) {
+        throw new Error("Endpoint invalide");
+    }
 
+    const headers = { 
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest" // Prévention CSRF
+    };
+
+    // ==============================
+    // SÉCURITÉ - Ajouter le token JWT si authentification requise
+    // ==============================
     if (auth) {
         const token = localStorage.getItem("token");
-        if (token) {
-            headers["Authorization"] = "Bearer " + token;
+        if (!token) {
+            console.warn("Token manquant. Redirection vers login.");
+            window.location.replace("login.html");
+            throw new Error("Non authentifié");
         }
+        headers["Authorization"] = "Bearer " + token;
     }
 
     const options = {
@@ -16,15 +53,32 @@ async function apiRequest(endpoint, method = "GET", body = null, auth = false) {
         headers,
     };
 
+    // ==============================
+    // SÉCURITÉ - Valider et sérialiser le body
+    // ==============================
     if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
-        options.body = JSON.stringify(body);
+        try {
+            options.body = JSON.stringify(body);
+        } catch (err) {
+            throw new Error("Impossible de sérialiser les données");
+        }
     }
 
     try {
         const response = await fetch(API_BASE + endpoint, options);
 
-        // Lire le corps de la réponse même en cas d'erreur pour avoir le message
+        // Lire la réponse
         const data = await response.json().catch(() => null);
+
+        // ==============================
+        // SÉCURITÉ - Gérer les erreurs 401/403 (token expiré)
+        // ==============================
+        if (response.status === 401 || response.status === 403) {
+            console.warn("Token expiré ou invalide. Redirection vers login.");
+            localStorage.removeItem("token");
+            window.location.replace("login.html");
+            throw new Error("Session expirée");
+        }
 
         if (!response.ok) {
             const message = (data && (data.message || data.error)) || "Erreur API (" + response.status + ")";
@@ -34,9 +88,9 @@ async function apiRequest(endpoint, method = "GET", body = null, auth = false) {
 
         return data;
     } catch (err) {
-        // Si c'est une erreur réseau (CORS, serveur down, etc.)
+        // Gestion des erreurs réseau
         if (err.name === "TypeError" && err.message === "Failed to fetch") {
-            console.error("Impossible de joindre l'API. Vérifiez que le serveur est en ligne et que CORS est activé.");
+            console.error("Erreur réseau: Impossible de joindre l'API.");
             throw new Error("Impossible de joindre le serveur API.");
         }
         throw err;
@@ -44,29 +98,49 @@ async function apiRequest(endpoint, method = "GET", body = null, auth = false) {
 }
 
 // ==============================
-// DOM READY
+// DOM READY - INITIALISATION SÉCURISÉE
 // ==============================
 document.addEventListener("DOMContentLoaded", () => {
 
-    // Gestion déconnexion
+    // ==============================
+    // SÉCURITÉ - Vérifier le token au chargement
+    // ==============================
+    const token = localStorage.getItem("token");
+    if (!token) {
+        // C'est ok pour login.html et index.html
+        if (!window.location.pathname.includes("login.html") && 
+            !window.location.pathname.includes("index.html") &&
+            !window.location.pathname.includes("a-propos.html")) {
+            console.warn("Accès non autorisé. Redirection vers login.");
+            window.location.replace("login.html");
+        }
+    }
+
+    // ==============================
+    // GESTION DE LA DÉCONNEXION
+    // ==============================
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) {
         logoutBtn.addEventListener("click", () => {
+            // Supprimer le token de manière sécurisée
             localStorage.removeItem("token");
+            // Redirection sécurisée
             window.location.replace("index.html");
         });
     }
 
-    // Tracking automatique des boutons
-    const token = localStorage.getItem("token");
+    // ==============================
+    // SÉCURITÉ - Tracking automatique des actions
+    // ==============================
     if (token) {
         document.querySelectorAll("button[data-track]").forEach(btn => {
             btn.addEventListener("click", async () => {
-                const actionName = btn.getAttribute("data-track") || btn.innerText || "action_inconnue";
+                const actionName = sanitizeHTML(btn.getAttribute("data-track")) || "action_inconnue";
                 try {
                     await apiRequest("/activity", "POST", { action: actionName }, true);
-                } catch {
-                    // Silencieux
+                } catch (err) {
+                    console.error("Erreur tracking:", err);
+                    // Silencieux - ne pas bloquer l'action
                 }
             });
         });
@@ -74,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==============================
-// Vérification du token
+// VÉRIFICATION DU TOKEN
 // ==============================
 async function verifyToken() {
     const token = localStorage.getItem("token");
@@ -87,7 +161,8 @@ async function verifyToken() {
     try {
         await apiRequest("/auth/verify", "GET", null, true);
         return true;
-    } catch {
+    } catch (err) {
+        console.error("Token invalide:", err);
         localStorage.removeItem("token");
         window.location.replace("login.html");
         return false;
@@ -95,21 +170,28 @@ async function verifyToken() {
 }
 
 // ==============================
-// Ouverture portail
+// OUVERTURE PORTAIL SÉCURISÉE
 // ==============================
 async function openPortal() {
+    // Vérifier l'authentification
+    if (!checkTokenValidity()) return;
+
     try {
         await apiRequest("/portal/open", "POST", null, true);
-       
+        console.log("Portail ouvert avec succès");
     } catch (err) {
-        alert("Erreur : " + err.message);
+        console.error("Erreur ouverture portail:", err);
+        alert("Erreur : " + sanitizeHTML(err.message));
     }
 }
 
 // ==============================
-// Chargement logs
+// CHARGEMENT DES LOGS SÉCURISÉ
 // ==============================
 async function loadLogs() {
+    // Vérifier l'authentification
+    if (!checkTokenValidity()) return;
+
     try {
         const data = await apiRequest("/logs", "GET", null, true);
 
@@ -118,28 +200,49 @@ async function loadLogs() {
 
         tableBody.innerHTML = "";
 
-        if (Array.isArray(data)) {
-            data.forEach(log => {
-                const tr = document.createElement("tr");
-                tr.innerHTML =
-                    "<td>" + (log.date || "") + "</td>" +
-                    "<td>" + (log.user || "") + "</td>" +
-                    "<td>" + (log.action || "") + "</td>";
-                tableBody.appendChild(tr);
-            });
-        } else if (data.data && Array.isArray(data.data)) {
-            data.data.forEach(log => {
-                const tr = document.createElement("tr");
-                tr.innerHTML =
-                    "<td>" + (log.date || "") + "</td>" +
-                    "<td>" + (log.user || "") + "</td>" +
-                    "<td>" + (log.action || "") + "</td>";
-                tableBody.appendChild(tr);
-            });
-        }
+        const logsArray = Array.isArray(data) ? data : (data.data && Array.isArray(data.data) ? data.data : []);
+
+        logsArray.forEach(log => {
+            const tr = document.createElement("tr");
+            // ==============================
+            // SÉCURITÉ - Sanitizer les données avant insertion dans le DOM
+            // ==============================
+            tr.innerHTML = 
+                "<td>" + sanitizeHTML(log.date || "") + "</td>" +
+                "<td>" + sanitizeHTML(log.user || "") + "</td>" +
+                "<td>" + sanitizeHTML(log.action || "") + "</td>";
+            tableBody.appendChild(tr);
+        });
 
     } catch (err) {
         console.error("Erreur chargement logs:", err);
         alert("Impossible de charger les logs.");
     }
+}
+
+// ==============================
+// SÉCURITÉ - Déconnexion automatique après inactivité (optionnel)
+// ==============================
+let inactivityTimer;
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    
+    const token = localStorage.getItem("token");
+    if (token) {
+        inactivityTimer = setTimeout(() => {
+            console.warn("Session expirée par inactivité");
+            localStorage.removeItem("token");
+            window.location.replace("login.html");
+        }, INACTIVITY_TIMEOUT);
+    }
+}
+
+// Réinitialiser le timer sur chaque interaction
+if (localStorage.getItem("token")) {
+    document.addEventListener("click", resetInactivityTimer);
+    document.addEventListener("keypress", resetInactivityTimer);
+    document.addEventListener("mousemove", resetInactivityTimer);
+    resetInactivityTimer();
 }

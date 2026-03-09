@@ -1,0 +1,9 @@
+# Fichiers sensibles - JAMAIS push
+config.js
+.env
+.env.local
+
+# Dossiers inutiles
+node_modules/
+.DS_Store
+*.log
