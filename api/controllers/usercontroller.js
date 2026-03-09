@@ -5,7 +5,7 @@ const db = require('../config/database');
 exports.getAllUsers = async (req, res) => {
   try {
     const [users] = await db.query(`
-      SELECT id, nom, prenom, email, type_acces
+      SELECT id, nom, prenom, email
       FROM utilisateurs
       ORDER BY id DESC
     `);
