@@ -8,8 +8,7 @@ const generateToken = (user) => {
     {
       id: user.id,
       email: user.email,
-      role: user.role,
-      type_acces: user.type_acces // Ajouter le type d'accès dans le token
+      role: user.role
     },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN }
@@ -54,8 +53,7 @@ exports.loginAdmin = async (req, res) => {
     const token = generateToken({
       id: admin.id,
       email: admin.email,
-      role: 'admin',
-      type_acces: 'TOTAL'
+      role: 'admin'
     });
 
     // Logger la connexion administrateur
@@ -74,8 +72,7 @@ exports.loginAdmin = async (req, res) => {
           nom: admin.nom,
           prenom: admin.prenom,
           email: admin.email,
-          role: 'admin',
-          type_acces: 'TOTAL'
+          role: 'admin'
         }
       }
     });
@@ -126,8 +123,7 @@ exports.loginUser = async (req, res) => {
     const token = generateToken({
       id: user.id,
       email: user.email,
-      role: 'user',
-      type_acces: user.type_acces.toUpperCase()
+      role: 'user'
     });
 
     await db.query(
@@ -145,8 +141,7 @@ exports.loginUser = async (req, res) => {
           nom: user.nom,
           prenom: user.prenom,
           email: user.email,
-          role: 'user',
-          type_acces: user.type_acces.toUpperCase()
+          role: 'user'
         }
       }
     });
@@ -162,21 +157,12 @@ exports.loginUser = async (req, res) => {
 // Inscription d'un nouvel utilisateur (par un admin)
 exports.registerUser = async (req, res) => {
   try {
-    const { nom, prenom, email, password, type_acces } = req.body;
+    const { nom, prenom, email, password } = req.body;
 
-    if (!nom || !prenom || !email || !password || !type_acces) {
+    if (!nom || !prenom || !email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Tous les champs obligatoires doivent être remplis'
-      });
-    }
-
-    const access = type_acces.toUpperCase();
-
-    if (!['TOTAL', 'REDUIT'].includes(access)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Type d\'accès invalide. Doit être "TOTAL" ou "REDUIT"'
       });
     }
 
@@ -195,14 +181,14 @@ exports.registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await db.query(
-      'INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, type_acces) VALUES (?, ?, ?, ?, ?)',
-      [nom, prenom, email, hashedPassword, access]
+      'INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe) VALUES (?, ?, ?, ?)',
+      [nom, prenom, email, hashedPassword]
     );
 
     // Logger l'inscription
     await db.query(
       'INSERT INTO logs (action, administrateurs_id) VALUES (?, ?)',
-      [`Nouvel utilisateur créé: ${email} (accès ${access})`, req.user.id]
+      [`Nouvel utilisateur créé: ${email}`, req.user.id]
     );
 
     res.status(201).json({
@@ -212,8 +198,7 @@ exports.registerUser = async (req, res) => {
         id: result.insertId,
         nom,
         prenom,
-        email,
-        type_acces: access
+        email
       }
     });
   } catch (error) {
