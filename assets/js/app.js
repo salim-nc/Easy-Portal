@@ -107,10 +107,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==============================
     const token = localStorage.getItem("token");
     if (!token) {
-        // C'est ok pour login.html et index.html
-        if (!window.location.pathname.includes("login.html") && 
-            !window.location.pathname.includes("index.html") &&
-            !window.location.pathname.includes("a-propos.html")) {
+        // ==============================
+        // CORRECTION - Inclure "/" pour la racine du site
+        // ==============================
+        const path = window.location.pathname;
+        const isPublic = path === "/" ||
+                         path.includes("index.html") ||
+                         path.includes("login.html") ||
+                         path.includes("a-propos.html");
+
+        if (!isPublic) {
             console.warn("Accès non autorisé. Redirection vers login.");
             window.location.replace("login.html");
         }
@@ -230,16 +236,14 @@ function showMessage(elementId, message, type) {
     el.textContent = message;
     el.className = `message ${type}`;
 
-    // ==============================
-    // MODIFIÉ : Les messages restent 30 secondes (30000 ms)
-    // ==============================
+    // Les messages restent 30 secondes (30000 ms)
     setTimeout(() => {
         el.className = "message";
-    }, 30000); // 30 secondes au lieu de 5 secondes
+    }, 30000);
 }
 
 // ==============================
-// SÉCURITÉ - Déconnexion automatique après inactivité (optionnel)
+// SÉCURITÉ - Déconnexion automatique après inactivité
 // ==============================
 let inactivityTimer;
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes

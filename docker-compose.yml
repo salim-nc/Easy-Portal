@@ -3,11 +3,7 @@ version: '3.8'
 services:
   easyportal:
     build: .
-    container_name: easyportal-app
+    container_name: easyportal
     ports:
       - "3001:3001"
-    volumes:
-      - .:/app
-    environment:
-      - NODE_ENV=development
     restart: unless-stopped

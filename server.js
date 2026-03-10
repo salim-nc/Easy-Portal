@@ -4,17 +4,17 @@ const path = require('path');
 
 const server = http.createServer((req, res) => {
     let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
-    
+
     console.log('Demande:', req.url, '-> Chemin:', filePath);
-    
+
     const extname = path.extname(filePath);
     let contentType = 'text/html';
-    
+
     if (extname === '.js') contentType = 'application/javascript';
     if (extname === '.css') contentType = 'text/css';
     if (extname === '.png') contentType = 'image/png';
     if (extname === '.jpg') contentType = 'image/jpeg';
-    
+
     fs.readFile(filePath, (err, data) => {
         if (err) {
             console.log('Erreur:', err.message);
