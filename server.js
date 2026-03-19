@@ -1,8 +1,13 @@
-const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const server = http.createServer((req, res) => {
+const options = {
+    key: fs.readFileSync('/app/certs/key.pem'),
+    cert: fs.readFileSync('/app/certs/cert.pem')
+};
+
+const server = https.createServer(options, (req, res) => {
     let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
 
     console.log('Demande:', req.url, '-> Chemin:', filePath);
@@ -28,5 +33,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(3001, () => {
-    console.log('Serveur lancé sur http://localhost:3001');
+    console.log('Serveur HTTPS lancé sur https://localhost:3001');
 });
