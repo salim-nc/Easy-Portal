@@ -4,34 +4,60 @@
     <title>À propos - EasyPortal</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
-        body {
+        /* --- Styles du fond dynamique --- */
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: linear-gradient(-45deg, #ffffff, #dcd0ff, #e0f2ff, #b392ff);
+            background-size: 400% 400%;
+            animation: gradientMovement 15s ease infinite;
             font-family: Arial, sans-serif;
             line-height: 1.6;
         }
 
+        @keyframes gradientMovement {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Suppression de la bande blanche du header */
+        header {
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        /* Conteneur de contenu avec effet de flou pour la lisibilité */
+        div.content {
+            padding: 40px;
+            max-width: 800px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+        }
+
         h1, h3 {
-            margin-top: 40px;
+            margin-top: 20px;
             margin-bottom: 15px;
+            color: #5f2eea; /* Rappel de la couleur du logo */
         }
 
         p {
             margin-bottom: 25px;
-        }
-
-        div.content {
-            padding: 20px;
-            max-width: 800px;
-            margin: auto;
+            color: #333;
         }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo">
+    <a class="logo" href="index.html" style="text-decoration: none; color: inherit; cursor: pointer;">
         <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
         <span>EasyPortal</span>
-    </div>
+    </a>
     <nav>
         <button onclick="window.location.href='index.html'">Accueil</button>
     </nav>

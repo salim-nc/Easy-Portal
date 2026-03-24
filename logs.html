@@ -3,6 +3,40 @@
 <head>
     <title>Logs - EasyPortal</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        /* --- Styles du fond dynamique --- */
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: linear-gradient(-45deg, #ffffff, #dcd0ff, #e0f2ff, #b392ff);
+            background-size: 400% 400%;
+            animation: gradientMovement 15s ease infinite;
+        }
+
+        @keyframes gradientMovement {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        header {
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        /* Conteneur pour que les logs soient lisibles sur le fond animé */
+        .logs-container {
+            padding: 40px;
+            max-width: 1200px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        /* -------------------------------- */
+    </style>
 </head>
 <body onload="verifyToken(); initLogs();">
 
@@ -17,7 +51,7 @@
     </nav>
 </header>
 
-<div style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+<div class="logs-container">
 
     <h2 style="margin-bottom: 20px;">Logs d'activité</h2>
     
@@ -39,7 +73,7 @@
     </div>
 
     <div style="overflow-x: auto;">
-        <table id="logsTable" style="width: 100%; border-collapse: collapse;">
+        <table id="logsTable" style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px;">
             <thead>
                 <tr style="background: #f3f4f6;">
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Date</th>

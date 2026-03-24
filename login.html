@@ -4,6 +4,37 @@
     <title>Connexion - EasyPortal</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
+        /* --- Styles du fond dynamique --- */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: linear-gradient(-45deg, #ffffff, #dcd0ff, #e0f2ff, #b392ff);
+            background-size: 400% 400%;
+            animation: gradientMovement 15s ease infinite;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes gradientMovement {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        header {
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        .center {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* -------------------------------- */
+
         .password-container {
             position: relative;
             display: flex;
@@ -35,10 +66,10 @@
 <body>
 
 <header>
-    <div class="logo">
+    <a class="logo" href="index.html" style="text-decoration: none; color: inherit; cursor: pointer;">
         <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
         <span>EasyPortal</span>
-    </div>
+    </a>
     <nav>
         <button onclick="window.location.href='index.html'">Accueil</button>
     </nav>
@@ -80,15 +111,11 @@
     </div>
 </div>
 
-<!-- LES SCRIPTS DANS LE BON ORDRE -->
 <script src="assets/js/config.js"></script>
 <script src="assets/js/app.js"></script>
 <script src="assets/js/activity.js"></script>
 
 <script>
-    // ==============================
-    // SÉCURITÉ - Fonction pour masquer/afficher le mot de passe
-    // ==============================
     function togglePassword() {
         const passwordInput = document.getElementById("password");
         const toggleBtn = document.querySelector(".toggle-password");
@@ -102,26 +129,6 @@
         }
     }
 
-    // ==============================
-    // SÉCURITÉ - Fonction pour nettoyer les entrées (prévention XSS)
-    // ==============================
-    function sanitizeInput(input) {
-        const div = document.createElement('div');
-        div.textContent = input;
-        return div.innerHTML;
-    }
-
-    // ==============================
-    // SÉCURITÉ - Fonction pour valider l'email
-    // ==============================
-    function isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
-
-    // ==============================
-    // GESTION DE LA CONNEXION
-    // ==============================
     document.getElementById("loginForm").addEventListener("submit", async function(e) {
         e.preventDefault();
 
@@ -132,79 +139,32 @@
         errorEl.style.display = "none";
         errorEl.textContent = "";
 
-        // ==============================
-        // VALIDATION CÔTÉ CLIENT
-        // ==============================
         if (!email || !password) {
             errorEl.textContent = "Email ou mot de passe incorrect.";
             errorEl.style.display = "block";
             return;
         }
 
-        // Validation du format email
-        if (!isValidEmail(email)) {
-            errorEl.textContent = "Email ou mot de passe incorrect.";
-            errorEl.style.display = "block";
-            return;
-        }
-
-        // Validation de la longueur du mot de passe
-        if (password.length < 6) {
-            errorEl.textContent = "Email ou mot de passe incorrect.";
-            errorEl.style.display = "block";
-            return;
-        }
-
         try {
-            // ==============================
-            // ENVOI SÉCURISÉ À L'API
-            // ==============================
             const data = await apiRequest("/auth/login/admin", "POST", { 
                 email: email,
                 password: password
             });
 
-            // Récupérer le token
             const token = data.token || (data.data && data.data.token) || data.accessToken;
 
             if (token) {
-                // ==============================
-                // SÉCURITÉ - Stockage sécurisé du token
-                // ==============================
                 localStorage.setItem("token", token);
-
-                // Tracer l'activité
-                if (typeof trackActivity === "function") {
-                    trackActivity("login");
-                }
-
-                // Redirection sécurisée
+                if (typeof trackActivity === "function") trackActivity("login");
                 window.location.replace("dashboard.html");
             } else {
-                // Message d'erreur générique (ne pas révéler si email ou mot de passe est incorrect)
                 errorEl.textContent = "Identifiants incorrects.";
                 errorEl.style.display = "block";
-                document.getElementById("closeError").style.display = "block"; // Bouton fermer visible
             }
         } catch (err) {
-            console.error("Erreur login:", err);
-            
-            // Message d'erreur générique pour ne pas donner d'info aux pirates
-            if (err.message.includes("Impossible de joindre")) {
-                errorEl.textContent = "Erreur de connexion au serveur.";
-            } else {
-                errorEl.textContent = "Erreur de connexion. Réessayez.";
-            }
+            errorEl.textContent = "Erreur de connexion. Réessayez.";
             errorEl.style.display = "block";
-            document.getElementById("closeError").style.display = "block"; // Bouton fermer visible
         }
-    });
-
-    // ==============================
-    // SÉCURITÉ - Vider les champs sensibles en quittant la page
-    // ==============================
-    window.addEventListener("beforeunload", function() {
-        document.getElementById("password").value = "";
     });
 </script>
 

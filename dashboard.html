@@ -1,16 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard</title>
+    <title>Dashboard - EasyPortal</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: linear-gradient(-45deg, #ffffff, #dcd0ff, #e0f2ff, #b392ff);
+            background-size: 400% 400%;
+            animation: gradientMovement 15s ease infinite;
+        }
+
+        @keyframes gradientMovement {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
 </head>
 <body onload="verifyToken()">
 
 <header>
-    <div class="logo">
+    <a class="logo" href="index.html" style="text-decoration: none; color: inherit; cursor: pointer;">
         <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
         <span>EasyPortal</span>
-    </div>
+    </a>
     <nav>
         <button onclick="window.location.href='logs.html'">Logs</button>
         <button onclick="window.location.href='admin-users.html'">Création Utilisateurs</button>
