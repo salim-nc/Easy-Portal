@@ -11,12 +11,156 @@
             background: linear-gradient(-45deg, #ffffff, #dcd0ff, #e0f2ff, #b392ff);
             background-size: 400% 400%;
             animation: gradientMovement 15s ease infinite;
+            display: flex;
+            flex-direction: column;
         }
 
         @keyframes gradientMovement {
             0%   { background-position: 0% 50%; }
             50%  { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
+        }
+
+        .video-wrapper iframe {
+            overflow: hidden;
+            border: none;
+            display: block;
+        }
+
+        .user-badge-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 15px;
+            padding: 8px 15px;
+            background: transparent;
+            border: none;
+            vertical-align: middle;
+        }
+
+        .user-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #5f2eea, #1e90ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #5f2eea;
+        }
+
+        .dashboard-container {
+            flex: 1;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            min-height: calc(100vh - 75px);
+            padding: 0 40px;
+            gap: 40px;
+        }
+
+        /* FOOTER */
+        .home-footer {
+            background: rgba(20, 5, 45, 0.92);
+            backdrop-filter: blur(6px);
+            color: #fff;
+            padding: 10px 60px 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .footer-brand .brand-name {
+            font-size: 13px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #b392ff, #1e90ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .footer-brand .brand-year {
+            font-size: 11px;
+            color: rgba(255,255,255,0.75);
+            letter-spacing: 0.08em;
+        }
+
+        .footer-info {
+            display: flex;
+            gap: 36px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .footer-col {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .footer-col .col-title {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .footer-col .col-value {
+            font-size: 12px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .footer-team {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .team-badge {
+            background: rgba(179, 146, 255, 0.2);
+            border: 1px solid rgba(179, 146, 255, 0.5);
+            color: #d8c4ff;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 9px;
+            border-radius: 20px;
+        }
+
+        .footer-bottom {
+            padding-top: 6px;
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.4;
+        }
+
+        .footer-bottom span {
+            color: #c9b0ff;
         }
     </style>
 </head>
@@ -33,6 +177,10 @@
         <button onclick="window.location.href='import.html'">Import CSV</button>
         <button onclick="window.location.href='export.html'">Export CSV</button>
         <button id="logoutBtn">Déconnexion</button>
+        <div class="user-badge-nav">
+            <div class="user-avatar" id="userInitial">A</div>
+            <span class="user-name" id="userName">admin@easyportal.com</span>
+        </div>
     </nav>
 </header>
 
@@ -40,11 +188,48 @@
     <button class="open-btn" onclick="openPortal()">Ouvrir le portail</button>
     
     <div class="video-card">
-        <div class="video-wrapper">
-            <iframe src="http://172.16.15.29:8000/stream.html"></iframe>
+        <div class="video-wrapper" style="overflow: hidden;">
+            <iframe 
+                src="http://172.16.15.29:8000/stream.html"
+                scrolling="no"
+                style="overflow: hidden; border: none; display: block; margin-top: -60px;">
+            </iframe>
         </div>
     </div>
 </div>
+
+<footer class="home-footer">
+    <div class="footer-top">
+        <div class="footer-brand">
+            <span class="brand-name">EasyPortal</span>
+            <span class="brand-year">Projet 2026</span>
+        </div>
+        <div class="footer-info">
+            <div class="footer-col">
+                <span class="col-title">Formation</span>
+                <span class="col-value">BTS CIEL — 2ème année</span>
+            </div>
+            <div class="footer-col">
+                <span class="col-title">Établissement</span>
+                <span class="col-value">Lycée Jean Rostand</span>
+                <span class="col-value" style="font-weight:400; font-size:13px; color:rgba(255,255,255,0.5);">Villepinte</span>
+            </div>
+            <div class="footer-col">
+                <span class="col-title">Équipe</span>
+                <div class="footer-team">
+                    <span class="team-badge">Salim</span>
+                    <span class="team-badge">Mohamed-Ameen</span>
+                    <span class="team-badge">Kheyreddine</span>
+                    <span class="team-badge">Walid</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        Ce site représente la vitrine web du projet <span>EasyPortal</span>, réalisé dans le cadre du BTS CIEL par
+        <span>Salim, Mohamed-Ameen, Kheyreddine et Walid</span>.
+    </div>
+</footer>
 
 <script src="assets/js/config.js"></script>
 <script src="assets/js/app.js"></script>
@@ -52,6 +237,7 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) {
         logoutBtn.addEventListener("click", function(e) {
@@ -59,6 +245,19 @@ document.addEventListener("DOMContentLoaded", function() {
             localStorage.removeItem("token");
             window.location.replace("index.html");
         });
+    }
+
+    const token = localStorage.getItem("token");
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            const email = payload.email || "admin@easyportal.com";
+            document.getElementById("userName").textContent = email;
+            document.getElementById("userInitial").textContent = email.charAt(0).toUpperCase();
+        } catch (e) {
+            document.getElementById("userName").textContent = "admin@easyportal.com";
+            document.getElementById("userInitial").textContent = "A";
+        }
     }
 });
 </script>

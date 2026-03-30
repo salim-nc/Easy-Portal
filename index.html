@@ -21,11 +21,11 @@
         }
 
         .center {
-            flex: 1;
+            /* Force le conteneur principal à prendre toute la hauteur de l'écran pour cacher le footer */
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding-top: 120px;
         }
 
         @keyframes gradientMovement {
@@ -38,13 +38,18 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            /* Permet de descendre globalement le texte et l'image un peu plus bas sur la page */
+            margin-top: 10vh; 
         }
 
         .center-group h1 {
             font-size: 40px;
             color: #5f2eea;
             margin: 0;
+            /* Rapproche violemment le texte de l'image (écrase l'espace transparent de l'image) */
+            margin-bottom: -30px; 
+            position: relative;
+            z-index: 2; /* Garde le texte au premier plan */
         }
 
         .center-bg-logo {
@@ -192,7 +197,7 @@
                 <span class="col-title">Équipe</span>
                 <div class="footer-team">
                     <span class="team-badge">Salim</span>
-                    <span class="team-badge">Mohammed-Ameen</span>
+                    <span class="team-badge">Mohamed-Ameen</span>
                     <span class="team-badge">Kheyreddine</span>
                     <span class="team-badge">Walid</span>
                 </div>
@@ -201,7 +206,7 @@
     </div>
     <div class="footer-bottom">
         Ce site représente la vitrine web du projet <span>EasyPortal</span>, réalisé dans le cadre du BTS CIEL par
-        <span>Salim, Mohammed-Ameen, Kheyreddine et Walid</span>.
+        <span>Salim, Mohamed-Ameen, Kheyreddine et Walid</span>.
     </div>
 </footer>
 

@@ -16,8 +16,8 @@ header {
     justify-content: space-between;
     align-items: center;
     padding: 15px 40px;
-    background: white;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    background: transparent;
+    box-shadow: none;
 }
 
 .logo {
@@ -136,7 +136,7 @@ nav button:hover {
 
 .video-wrapper iframe {
     width: 600px;
-    height: 380px;
+    height: 480px;
     display: block;
     border: none;
 }
@@ -168,7 +168,7 @@ nav button:hover {
 
 iframe {
     width: 600px;
-    height: 400px;
+    height: 480px;
     border-radius: 10px;
     border: none;
 }
