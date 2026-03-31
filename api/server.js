@@ -18,6 +18,7 @@ const plaqueRoutes = require('./routes/plaqueroutes');
 const portalRoutes = require('./routes/portalroutes');
 const userRoutes = require('./routes/userroutes');
 const logRoutes = require('./routes/logroutes');
+const tpmsRoutes = require('./routes/tpmsroutes');
 // Route de base
 app.get('/', (req, res) => {
   res.json({
@@ -29,7 +30,8 @@ app.get('/', (req, res) => {
       plaques: '/api/plaques',
       portal: '/api/portal',
       users: '/api/users',
-      logs: '/api/logs'
+      logs: '/api/logs',
+      tpms: '/api/tpms'
     }
   });
 });
@@ -39,6 +41,7 @@ app.use('/api/plaques', plaqueRoutes);
 app.use('/api/portal', portalRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/tpms', tpmsRoutes);
 // Route 404
 app.use((req, res) => {
   res.status(404).json({
@@ -80,6 +83,9 @@ app.listen(PORT, () => {
   console.log('  PORTAIL:');
   console.log('  - POST   /api/portal/open');
   console.log('  - POST   /api/portal/open-by-plaque');
+  console.log('  TPMS:');
+  console.log('  - POST   /api/tpms');
+  console.log('  - GET    /api/tpms/verify/:plaque');
   console.log('  UTILISATEURS:');
   console.log('  - GET    /api/users');
   console.log('  LOGS:');

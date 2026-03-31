@@ -68,7 +68,7 @@ exports.verifyPlaque = async (req, res) => {
 // Ajouter une nouvelle plaque
 exports.addPlaque = async (req, res) => {
   try {
-    const { numero, utilisateurs_id, description } = req.body;
+    const { numero, utilisateurs_id, capteur_id } = req.body;
     if (!numero) {
       return res.status(400).json({ success: false, message: 'Numero de plaque requis' });
     }
@@ -83,8 +83,8 @@ exports.addPlaque = async (req, res) => {
       }
     }
     const [result] = await db.query(
-      "INSERT INTO plaques (numero_plaque, utilisateurs_id, statut) VALUES (?, ?, 'AUTORISEE')",
-      [numero, utilisateurs_id || null]
+      "INSERT INTO plaques (numero_plaque, utilisateurs_id, capteur_id, statut) VALUES (?, ?, ?, 'AUTORISEE')",
+      [numero, utilisateurs_id || null, capteur_id || null]
     );
     await db.query(
       'INSERT INTO logs (action, utilisateurs_id, plaques_id) VALUES (?, ?, ?)',
@@ -93,7 +93,7 @@ exports.addPlaque = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Plaque ajoutee avec succes',
-      data: { id: result.insertId, numero, utilisateurs_id }
+      data: { id: result.insertId, numero, utilisateurs_id, capteur_id }
     });
   } catch (error) {
     console.error('Erreur lors de l ajout de la plaque:', error);
@@ -105,7 +105,7 @@ exports.addPlaque = async (req, res) => {
 exports.updatePlaque = async (req, res) => {
   try {
     const { id } = req.params;
-    const { numero, utilisateurs_id, statut } = req.body;
+    const { numero, utilisateurs_id, statut, capteur_id } = req.body;
     const [existingPlaques] = await db.query('SELECT * FROM plaques WHERE id = ?', [id]);
     if (existingPlaques.length === 0) {
       return res.status(404).json({ success: false, message: 'Plaque non trouvee' });
@@ -123,6 +123,10 @@ exports.updatePlaque = async (req, res) => {
     if (statut !== undefined) {
       updateFields.push('statut = ?');
       values.push(statut === 'INTERDITE' ? 'INTERDITE' : 'AUTORISEE');
+    }
+    if (capteur_id !== undefined) {
+      updateFields.push('capteur_id = ?');
+      values.push(capteur_id);
     }
     if (updateFields.length === 0) {
       return res.status(400).json({ success: false, message: 'Aucun champ a mettre a jour' });
