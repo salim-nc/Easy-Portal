@@ -153,7 +153,12 @@ exports.deletePlaque = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Plaque non trouvee' });
     }
     const plaque = existingPlaques[0];
+
+    // Supprimer les logs lies a cette plaque avant de supprimer la plaque (contrainte FK)
+    await db.query('DELETE FROM logs WHERE plaques_id = ?', [id]);
+
     await db.query('DELETE FROM plaques WHERE id = ?', [id]);
+
     await db.query(
       'INSERT INTO logs (action, utilisateurs_id) VALUES (?, ?)',
       [`Plaque supprimee: ${plaque.numero_plaque}`, req.user.id]
