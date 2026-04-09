@@ -45,19 +45,6 @@ services:
       - "5000:5000"
     devices:
       - /dev/ttyACM0:/dev/ttyACM0
-    volumes:
-      - /usr/lib/python3/dist-packages:/usr/lib/python3/dist-packages:ro
-      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:ro
-      - /usr/lib/libarmadillo.so.14:/usr/lib/libarmadillo.so.14:ro
-      - /usr/lib/libarmadillo.so.14.2.3:/usr/lib/libarmadillo.so.14.2.3:ro
-      - /usr/bin/python3:/usr/bin/python3:ro
-      - /usr/lib/python3.13:/usr/lib/python3.13:ro
-      - /etc/alternatives:/etc/alternatives:ro
-      - /etc/ssl:/etc/ssl:ro
-      - /home/ciel-easyportal/.local/lib/python3.13:/home/ciel-easyportal/.local/lib/python3.13:ro
-    environment:
-      - PYTHONPATH=/usr/lib/python3/dist-packages:/home/ciel-easyportal/.local/lib/python3.13/site-packages
-      - LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib
     privileged: true
     restart: unless-stopped
     networks:

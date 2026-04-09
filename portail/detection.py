@@ -17,7 +17,8 @@ SERIAL_PORT = "/dev/ttyACM0"
 SERIAL_BAUD = 9600
 API_URL = "http://api:3000"
 CAMERA_URL = "http://camera:8000/stream.mjpg"
-MIN_CONTOUR_AREA = 5000  # Taille minimale du contour pour etre un vehicule
+MIN_CONTOUR_AREA = 500  # Baisse pour maquette (etait 5000)
+SKIP_CONTOUR = False  # Mettre True pour ignorer la detection de contour
 
 # ===== CAPTURE IMAGE DEPUIS FLUX CAMERA =====
 def capture_frame():
@@ -52,58 +53,66 @@ def detect_contour(frame):
             aspect_ratio = w / float(h)
             
             # Un vehicule est generalement plus large que haut
-            if 0.5 < aspect_ratio < 4.0:
+            if 0.3 < aspect_ratio < 6.0:  # Elargi pour maquette
                 print(f"[CONTOUR] Objet detecte: {w}x{h} pixels (aire: {area})")
                 return True, (x, y, w, h)
     
     print("[CONTOUR] Aucun objet significatif detecte")
     return False, None
 
+# ===== EXTRACTION PLAQUE DEPUIS TEXTE OCR =====
+def extract_plate_from_text(text):
+    """Nettoie le texte OCR et cherche un format de plaque francaise"""
+    text = text.strip().replace(' ', '').replace('\n', '').upper()
+    # Nettoyer les caracteres speciaux
+    text = re.sub(r'[^A-Z0-9]', '', text)
+    
+    # Chercher format plaque francaise dans le texte (meme si ya du bruit autour)
+    match = re.search(r'([A-Z]{2})(\d{3})([A-Z]{2})', text)
+    if match:
+        plate_text = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
+        return plate_text
+    return None
+
 # ===== DETECTION ET LECTURE DE PLAQUE =====
 def read_plate(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     
-    # Ameliorer le contraste
-    gray = cv2.bilateralFilter(gray, 11, 17, 17)
-    
-    # Detection des contours
-    edges = cv2.Canny(gray, 30, 200)
-    
-    # Trouver les contours
+    # === METHODE 1 : Chercher un rectangle de plaque ===
+    gray_filtered = cv2.bilateralFilter(gray, 11, 17, 17)
+    edges = cv2.Canny(gray_filtered, 30, 200)
     contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:15]
 
     for contour in contours:
         approx = cv2.approxPolyDP(contour, 0.018 * cv2.arcLength(contour, True), True)
         
-        # Une plaque a 4 coins (rectangle)
         if len(approx) == 4:
             x, y, w, h = cv2.boundingRect(approx)
             aspect_ratio = w / float(h)
             
-            # Ratio d une plaque francaise (environ 4.6:1)
-            if 2.0 < aspect_ratio < 6.0 and w > 60:
+            # Criteres elargis pour maquette
+            if 1.5 < aspect_ratio < 7.0 and w > 30:
                 plate_img = gray[y:y+h, x:x+w]
-                
-                # Redimensionner pour meilleure OCR
                 plate_img = cv2.resize(plate_img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-                
-                # Seuillage pour meilleur contraste
                 _, plate_img = cv2.threshold(plate_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
                 
-                # OCR
                 text = pytesseract.image_to_string(plate_img, config='--psm 7 --oem 3')
-                text = text.strip().replace(' ', '').upper()
-                
-                # Nettoyer
-                text = re.sub(r'[^A-Z0-9]', '', text)
-                
-                # Verifier format plaque francaise: 2 lettres + 3 chiffres + 2 lettres
-                match = re.match(r'^([A-Z]{2})(\d{3})([A-Z]{2})$', text)
-                if match:
-                    plate_text = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
-                    print(f"[OCR] Plaque lue: {plate_text}")
-                    return plate_text
+                plate = extract_plate_from_text(text)
+                if plate:
+                    print(f"[OCR] Plaque lue (methode rectangle): {plate}")
+                    return plate
+
+    # === METHODE 2 : OCR sur l'image entiere (fallback pour maquette) ===
+    gray_resized = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    _, gray_thresh = cv2.threshold(gray_resized, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    for psm in ['--psm 6 --oem 3', '--psm 11 --oem 3', '--psm 3 --oem 3']:
+        text = pytesseract.image_to_string(gray_thresh, config=psm)
+        plate = extract_plate_from_text(text)
+        if plate:
+            print(f"[OCR] Plaque lue (methode fullscan): {plate}")
+            return plate
 
     print("[OCR] Aucune plaque detectee")
     return None
@@ -162,6 +171,11 @@ def main():
         print(f"[SERIE] Erreur: {e}")
         ser = None
 
+    if SKIP_CONTOUR:
+        print("[CONFIG] Mode maquette: detection de contour DESACTIVEE")
+    else:
+        print(f"[CONFIG] Seuil contour: {MIN_CONTOUR_AREA} pixels")
+
     print("[SYSTEME] En attente de detection...")
     print("")
 
@@ -180,13 +194,16 @@ def main():
                     continue
 
                 # Etape 2 : Confirmer la presence avec detection de contour
-                detected, bbox = detect_contour(frame)
-                
-                if not detected:
-                    print("[CONTOUR] Aucun objet significatif. Ignore.")
-                    continue
+                if not SKIP_CONTOUR:
+                    detected, bbox = detect_contour(frame)
+                    
+                    if not detected:
+                        print("[CONTOUR] Aucun objet significatif. Ignore.")
+                        continue
 
-                print("[CONTOUR] Objet confirme devant le portail")
+                    print("[CONTOUR] Objet confirme devant le portail")
+                else:
+                    print("[CONTOUR] Skip (mode maquette)")
 
                 # Etape 3 : Lire la plaque (plusieurs tentatives)
                 plate = read_plate_multi(max_attempts=3)
