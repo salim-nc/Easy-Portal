@@ -30,13 +30,22 @@ exports.addTpmsData = async (req, res) => {
   }
 };
 
-// GET /api/tpms/verify/:plaque — Vérifier si le capteur TPMS correspond à la plaque
+// POST /api/tpms/verify/:plaque — Vérifier si le capteur TPMS correspond à la plaque
+// Reçoit dans le body : { capteur_id_detected } envoyé par detection.py via ZMQ
 exports.verifyTpms = async (req, res) => {
   try {
     const { plaque } = req.params;
+    const { capteur_id_detected } = req.body; // ID recu par ZMQ depuis detection.py
     const plaqueNormalize = plaque.replace(/\s/g, '').toUpperCase();
 
-    // 1. Chercher le capteur_id de reference dans la table plaques
+    if (!capteur_id_detected) {
+      return res.status(400).json({
+        success: false,
+        message: 'Champ requis : capteur_id_detected'
+      });
+    }
+
+    // 1. Chercher le capteur_id de reference lie a la plaque en BD
     const [plaques] = await db.query(
       "SELECT capteur_id, numero_plaque FROM plaques WHERE REPLACE(numero_plaque, ' ', '') = ? AND statut = 'AUTORISEE'",
       [plaqueNormalize]
@@ -58,29 +67,15 @@ exports.verifyTpms = async (req, res) => {
       });
     }
 
-    // 2. Chercher le dernier capteur detecte dans tpms_data
-    const [tpmsData] = await db.query(
-      'SELECT capteur_id, pression, temperature, date_heure FROM tpms_data ORDER BY date_heure DESC LIMIT 1'
-    );
+    // 2. Comparer l'ID ZMQ recu avec l'ID de reference en BD
+    const match = capteurReference === capteur_id_detected;
 
-    if (tpmsData.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Aucune donnee TPMS recue'
-      });
-    }
-
-    const capteurDetecte = tpmsData[0].capteur_id;
-
-    // 3. Comparer les deux
-    const match = capteurReference === capteurDetecte;
-
-    // 4. Logger le resultat
+    // 3. Logger le resultat
     await db.query(
       'INSERT INTO logs (action) VALUES (?)',
       [match
-        ? `TPMS OK : Plaque ${plaqueNormalize} — capteur ${capteurDetecte} correspond`
-        : `ALERTE FRAUDE : Plaque ${plaqueNormalize} — attendu ${capteurReference}, detecte ${capteurDetecte}`
+        ? `TPMS OK : Plaque ${plaqueNormalize} — capteur ${capteur_id_detected} correspond`
+        : `ALERTE FRAUDE : Plaque ${plaqueNormalize} — attendu ${capteurReference}, detecte ${capteur_id_detected}`
       ]
     );
 
@@ -91,12 +86,10 @@ exports.verifyTpms = async (req, res) => {
       data: {
         plaque: plaqueNormalize,
         capteur_reference: capteurReference,
-        capteur_detecte: capteurDetecte,
-        pression: tpmsData[0].pression,
-        temperature: tpmsData[0].temperature,
-        date_detection: tpmsData[0].date_heure
+        capteur_detecte: capteur_id_detected
       }
     });
+
   } catch (error) {
     console.error('Erreur lors de la verification TPMS:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur' });

@@ -11,6 +11,10 @@ import serial
 import requests
 import time
 import re
+import zmq
+import json
+import threading
+from collections import Counter
 
 # ===== CONFIGURATION =====
 SERIAL_PORT = "/dev/ttyACM0"
@@ -18,7 +22,31 @@ SERIAL_BAUD = 9600
 API_URL = "http://api:3000"
 CAMERA_URL = "http://camera:8000/stream.mjpg"
 MIN_CONTOUR_AREA = 500  # Baisse pour maquette (etait 5000)
-SKIP_CONTOUR = False  # Mettre True pour ignorer la detection de contour
+SKIP_CONTOUR = False    # Mettre True pour ignorer la detection de contour
+ZMQ_TPMS_URL = "tcp://localhost:5555"  # Adresse du publisher GNU Radio
+TPMS_MAX_AGE = 60       # Secondes max avant de considerer la donnee TPMS trop vieille
+
+# ===== STOCKAGE DU DERNIER PAYLOAD TPMS EN MEMOIRE =====
+last_tpms = None        # Contiendra le dernier dict recu : {id, pression, temperature, ts}
+tpms_lock = threading.Lock()
+
+# ===== THREAD ZMQ : ecoute en arriere-plan =====
+def zmq_listener():
+    global last_tpms
+    ctx = zmq.Context()
+    sub = ctx.socket(zmq.SUB)
+    sub.connect(ZMQ_TPMS_URL)
+    sub.setsockopt_string(zmq.SUBSCRIBE, "")
+    print("[ZMQ] Connecte, en ecoute des trames TPMS...")
+    while True:
+        try:
+            msg = sub.recv_string()
+            payload = json.loads(msg)
+            with tpms_lock:
+                last_tpms = payload
+            print(f"[ZMQ] Trame recue — ID: {payload['id']} | P: {payload['pression']} kPa | T: {payload['temperature']}°C")
+        except Exception as e:
+            print(f"[ZMQ] Erreur: {e}")
 
 # ===== CAPTURE IMAGE DEPUIS FLUX CAMERA =====
 def capture_frame():
@@ -135,12 +163,11 @@ def read_plate_multi(max_attempts=3):
         return None
     
     # Retourner la plaque la plus frequente
-    from collections import Counter
     most_common = Counter(results).most_common(1)[0][0]
     print(f"[OCR] Resultat final: {most_common} ({len(results)}/{max_attempts} lectures)")
     return most_common
 
-# ===== VERIFICATION API =====
+# ===== VERIFICATION PLAQUE VIA API =====
 def verify_plate(numero):
     try:
         response = requests.post(
@@ -155,12 +182,48 @@ def verify_plate(numero):
         print(f"[API] Erreur: {e}")
         return False
 
+# ===== VERIFICATION TPMS VIA API =====
+def verify_tpms(plaque):
+    """
+    Envoie l'ID TPMS recu par ZMQ a l'API pour comparaison avec la BD.
+    Retourne True si le capteur correspond, False sinon.
+    """
+    with tpms_lock:
+        tpms = last_tpms
+
+    if tpms is None:
+        print("[TPMS] Aucune donnee TPMS recue — verification impossible")
+        return False  # Pas de donnee = on refuse par securite
+
+    tpms_age = time.time() - tpms["ts"]
+    if tpms_age > TPMS_MAX_AGE:
+        print(f"[TPMS] Donnee trop ancienne ({tpms_age:.0f}s) — verification refusee")
+        return False
+
+    try:
+        response = requests.post(
+            f"{API_URL}/api/tpms/verify/{plaque}",
+            json={"capteur_id_detected": tpms["id"]},  # On envoie l'ID ZMQ a l'API
+            timeout=5
+        )
+        data = response.json()
+        verified = data.get("verified", False)
+        print(f"[TPMS] Verification plaque {plaque}: {'OK' if verified else 'ALERTE FRAUDE'}")
+        return verified
+    except Exception as e:
+        print(f"[TPMS] Erreur API: {e}")
+        return False
+
 # ===== PROGRAMME PRINCIPAL =====
 def main():
     print("=" * 50)
     print("   EASYPORTAL - Systeme de detection")
-    print("   Detection de contour + OCR + API")
+    print("   Detection de contour + OCR + API + TPMS")
     print("=" * 50)
+
+    # Lancer le thread ZMQ en arriere-plan
+    t = threading.Thread(target=zmq_listener, daemon=True)
+    t.start()
 
     # Initialiser la liaison serie avec Arduino
     try:
@@ -180,7 +243,7 @@ def main():
     print("")
 
     while True:
-        # Lire les messages de l Arduino
+        # Lire les messages de l'Arduino
         if ser and ser.in_waiting > 0:
             line = ser.readline().decode('utf-8', errors='ignore').strip()
             
@@ -212,15 +275,22 @@ def main():
                     print("[OCR] Impossible de lire la plaque")
                     continue
 
-                # Etape 4 : Verifier en BDD via API
+                # Etape 4 : Verifier la plaque en BD via API
                 authorized = verify_plate(plate)
+                if not authorized:
+                    print(f"[PORTAIL] Plaque {plate} REFUSEE — Pas d ouverture")
+                    continue
 
-                if authorized:
-                    print(f"[PORTAIL] Plaque {plate} AUTORISEE - Ouverture!")
-                    if ser:
-                        ser.write(b'1')
-                else:
-                    print(f"[PORTAIL] Plaque {plate} REFUSEE - Pas d ouverture")
+                # Etape 5 : Verifier le capteur TPMS via API
+                tpms_ok = verify_tpms(plate)
+                if not tpms_ok:
+                    print(f"[PORTAIL] ALERTE FRAUDE — Plaque {plate} autorisee mais capteur TPMS non conforme!")
+                    continue
+
+                # Les deux verifications sont OK → ouverture
+                print(f"[PORTAIL] Plaque {plate} AUTORISEE + TPMS OK — Ouverture!")
+                if ser:
+                    ser.write(b'1')
 
         time.sleep(0.1)
 

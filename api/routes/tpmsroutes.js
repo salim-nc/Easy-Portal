@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const tpmscontroller = require('../controllers/tpmscontroller');
+const tpmsController = require('../controllers/tpmscontroller');
+const { verifyToken } = require('../middleware/auth');
 
-// Route publique — recoit les donnees du capteur TPMS (GNU Radio / simulation)
-router.post('/', tpmscontroller.addTpmsData);
+// POST /api/tpms — Enregistrer des données TPMS
+router.post('/', verifyToken, tpmsController.addTpmsData);
 
-// Route publique — verifie si le capteur TPMS correspond a la plaque
-router.get('/verify/:plaque', tpmscontroller.verifyTpms);
+// POST /api/tpms/verify/:plaque — Verifier le capteur TPMS d'une plaque
+// Appelee par detection.py avec { capteur_id_detected } dans le body
+router.post('/verify/:plaque', tpmsController.verifyTpms);
 
 module.exports = router;
