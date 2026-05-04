@@ -73,34 +73,32 @@ def detect_vehicle(frame):
 
 # ===== LECTURE PLAQUE (fast-alpr) =====
 def read_plate_from_frame(frame):
-    """
-    Retourne (plaque_formatée, confiance) ou (None, 0).
-    fast-alpr gère en interne : détection YOLOv8 + OCR PaddleOCR.
-    """
     frame = preprocess_frame(frame)
-    results = alpr.run(frame)
+    results = alpr.predict(frame)
 
     best_plate = None
     best_conf  = 0.0
 
     for result in results:
-        for plate in result.ocr_results:
-            text = plate.text.upper().replace(" ", "")
-            conf = plate.confidence
+        if result.ocr is None:
+            continue
+        text = result.ocr.text.upper().replace(" ", "")
+        raw_conf = result.ocr.confidence
+        conf = float(sum(raw_conf) / len(raw_conf)) if isinstance(raw_conf, list) else float(raw_conf)
 
-            if conf < CONFIDENCE_THRESHOLD:
-                continue
+        print(f"[ALPR] Brut: '{text}'  confiance: {conf:.2f}")  
 
-            # Nettoyer les caractères parasites
-            text = re.sub(r'[^A-Z0-9]', '', text)
+        if conf < CONFIDENCE_THRESHOLD:
+            continue
 
-            # Valider le format plaque française : AB-123-CD
-            match = re.match(r'^([A-Z]{2})(\d{3})([A-Z]{2})$', text)
-            if match:
-                formatted = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
-                if conf > best_conf:
-                    best_plate = formatted
-                    best_conf  = conf
+        text = re.sub(r'[^A-Z0-9]', '', text)
+
+        match = re.match(r'^([A-Z]{2})(\d{3})([A-Z]{2})$', text)
+        if match:
+            formatted = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
+            if conf > best_conf:
+                best_plate = formatted
+                best_conf  = conf
 
     if best_plate:
         print(f"[ALPR] Plaque: {best_plate}  (confiance: {best_conf:.2f})")
@@ -138,7 +136,7 @@ def read_plate_multi(max_attempts=5):
 
     best = vote_scores.most_common(1)[0][0]
     n    = sum(1 for p, _ in readings if p == best)
-    print(f"[ALPR] Résultat final: {best} ({n}/{len(readings)} lectures)")
+    print(f"[ALPR] Résultat final: {best}")
     return best
 
 # ===== VÉRIFICATION API =====

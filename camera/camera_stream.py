@@ -12,6 +12,7 @@ class StreamingOutput(io.BufferedIOBase):
     def __init__(self):
         self.frame = None
         self.condition = Condition()
+
     def write(self, buf):
         with self.condition:
             self.frame = buf
@@ -22,6 +23,12 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     allow_reuse_address = True
 
 class StreamingHandler(BaseHTTPRequestHandler):
+
+    def log_message(self, format, *args):
+        if '/stream.mjpg' in args[0]:
+            return
+        super().log_message(format, *args)
+
     def do_GET(self):
         if self.path == '/':
             self.send_response(301)
@@ -61,7 +68,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     self.wfile.write(frame)
                     self.wfile.write(b'\r\n')
             except (ConnectionResetError, BrokenPipeError):
-                pass 
+                pass
             except Exception as e:
                 print(f"Erreur flux: {e}")
         else:
