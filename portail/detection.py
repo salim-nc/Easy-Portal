@@ -1,137 +1,147 @@
 #!/usr/bin/env python3
 """
-EasyPortal - Script de detection de vehicule et lecture de plaque
-Etudiant 2 : Detection contour (OpenCV) + OCR plaque + commande portail
+EasyPortal - Détection plaque améliorée
+Utilise fast-alpr (YOLOv8-tiny + PaddleOCR) — optimisé Raspberry Pi 4
 """
 
 import cv2
 import numpy as np
-import pytesseract
 import serial
 import requests
 import time
 import re
+import threading
+from collections import Counter
+from fast_alpr import ALPR  # pip install fast-alpr
 
 # ===== CONFIGURATION =====
-SERIAL_PORT = "/dev/ttyACM0"
-SERIAL_BAUD = 9600
-API_URL = "http://api:3000"
-CAMERA_URL = "http://camera:8000/stream.mjpg"
-MIN_CONTOUR_AREA = 5000  # Taille minimale du contour pour etre un vehicule
+SERIAL_PORT          = "/dev/ttyACM0"
+SERIAL_BAUD          = 9600
+API_URL              = "http://api:3000"
+CAMERA_URL           = "http://camera:8000/stream.mjpg"
+CONFIDENCE_THRESHOLD = 0.75   # Seuil minimum pour accepter une lecture
+MAX_FRAME_WIDTH      = 640    # Résolution réduite pour accélérer l'inférence sur RPi4
 
-# ===== CAPTURE IMAGE DEPUIS FLUX CAMERA =====
+# ===== INITIALISATION ALPR =====
+# Modèle "tiny" = le plus léger, adapté RPi 4 (~2-3s par frame)
+# Les modèles sont téléchargés automatiquement au premier lancement
+alpr = ALPR(
+    detector_model="yolo-v9-t-384-license-plate-end2end",
+    ocr_model="global-plates-mobile-vit-v2-model",
+)
+
+# ===== CAPTURE =====
 def capture_frame():
     cap = cv2.VideoCapture(CAMERA_URL)
-    ret, frame = cap.read()
+    # Flush du buffer MJPEG : on lit plusieurs frames pour avoir la plus récente
+    for _ in range(3):
+        ret, frame = cap.read()
     cap.release()
     if ret:
         return frame
     print("[CAMERA] Erreur de capture")
     return None
 
-# ===== DETECTION DE CONTOUR (VEHICULE) =====
-def detect_contour(frame):
+# ===== PRÉTRAITEMENT FRAME =====
+def preprocess_frame(frame, max_width=MAX_FRAME_WIDTH):
+    """
+    Réduit la résolution si nécessaire.
+    Gain ~40% de vitesse d'inférence sur RPi 4.
+    """
+    h, w = frame.shape[:2]
+    if w > max_width:
+        scale = max_width / w
+        frame = cv2.resize(frame, (max_width, int(h * scale)))
+    return frame
+
+# ===== DÉTECTION VÉHICULE (pré-filtre rapide) =====
+def detect_vehicle(frame):
+    """
+    Pré-filtre léger pour éviter de lancer ALPR sur des frames vides.
+    Détection rapide par analyse de contours significatifs.
+    """
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    
-    # Seuillage adaptatif
-    thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                    cv2.THRESH_BINARY_INV, 11, 2)
-    
-    # Dilatation pour relier les contours proches
-    kernel = np.ones((5, 5), np.uint8)
-    dilated = cv2.dilate(thresh, kernel, iterations=2)
-    
-    # Trouver les contours
-    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area > MIN_CONTOUR_AREA:
-            x, y, w, h = cv2.boundingRect(contour)
-            aspect_ratio = w / float(h)
-            
-            # Un vehicule est generalement plus large que haut
-            if 0.5 < aspect_ratio < 4.0:
-                print(f"[CONTOUR] Objet detecte: {w}x{h} pixels (aire: {area})")
-                return True, (x, y, w, h)
-    
-    print("[CONTOUR] Aucun objet significatif detecte")
-    return False, None
+    blur = cv2.GaussianBlur(gray, (21, 21), 0)
+    _, thresh = cv2.threshold(blur, 0, 255,
+                              cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL,
+                                   cv2.CHAIN_APPROX_SIMPLE)
+    for c in contours:
+        if cv2.contourArea(c) > 8000:
+            return True
+    return False
 
-# ===== DETECTION ET LECTURE DE PLAQUE =====
-def read_plate(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    
-    # Ameliorer le contraste
-    gray = cv2.bilateralFilter(gray, 11, 17, 17)
-    
-    # Detection des contours
-    edges = cv2.Canny(gray, 30, 200)
-    
-    # Trouver les contours
-    contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+# ===== LECTURE PLAQUE (fast-alpr) =====
+def read_plate_from_frame(frame):
+    """
+    Retourne (plaque_formatée, confiance) ou (None, 0).
+    fast-alpr gère en interne : détection YOLOv8 + OCR PaddleOCR.
+    """
+    frame = preprocess_frame(frame)
+    results = alpr.run(frame)
 
-    for contour in contours:
-        approx = cv2.approxPolyDP(contour, 0.018 * cv2.arcLength(contour, True), True)
-        
-        # Une plaque a 4 coins (rectangle)
-        if len(approx) == 4:
-            x, y, w, h = cv2.boundingRect(approx)
-            aspect_ratio = w / float(h)
-            
-            # Ratio d une plaque francaise (environ 4.6:1)
-            if 2.0 < aspect_ratio < 6.0 and w > 60:
-                plate_img = gray[y:y+h, x:x+w]
-                
-                # Redimensionner pour meilleure OCR
-                plate_img = cv2.resize(plate_img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-                
-                # Seuillage pour meilleur contraste
-                _, plate_img = cv2.threshold(plate_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                
-                # OCR
-                text = pytesseract.image_to_string(plate_img, config='--psm 7 --oem 3')
-                text = text.strip().replace(' ', '').upper()
-                
-                # Nettoyer
-                text = re.sub(r'[^A-Z0-9]', '', text)
-                
-                # Verifier format plaque francaise: 2 lettres + 3 chiffres + 2 lettres
-                match = re.match(r'^([A-Z]{2})(\d{3})([A-Z]{2})$', text)
-                if match:
-                    plate_text = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
-                    print(f"[OCR] Plaque lue: {plate_text}")
-                    return plate_text
+    best_plate = None
+    best_conf  = 0.0
 
-    print("[OCR] Aucune plaque detectee")
-    return None
+    for result in results:
+        for plate in result.ocr_results:
+            text = plate.text.upper().replace(" ", "")
+            conf = plate.confidence
 
-# ===== TENTATIVES MULTIPLES DE LECTURE =====
-def read_plate_multi(max_attempts=3):
-    """Prend plusieurs photos et garde le meilleur resultat"""
-    results = []
-    
+            if conf < CONFIDENCE_THRESHOLD:
+                continue
+
+            # Nettoyer les caractères parasites
+            text = re.sub(r'[^A-Z0-9]', '', text)
+
+            # Valider le format plaque française : AB-123-CD
+            match = re.match(r'^([A-Z]{2})(\d{3})([A-Z]{2})$', text)
+            if match:
+                formatted = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
+                if conf > best_conf:
+                    best_plate = formatted
+                    best_conf  = conf
+
+    if best_plate:
+        print(f"[ALPR] Plaque: {best_plate}  (confiance: {best_conf:.2f})")
+
+    return best_plate, best_conf
+
+# ===== VOTE MAJORITAIRE SUR N FRAMES =====
+def read_plate_multi(max_attempts=5):
+    """
+    Capture plusieurs frames et retourne la plaque la plus fréquente
+    parmi les lectures valides, pondérée par la confiance.
+    """
+    readings = []
+
     for i in range(max_attempts):
         frame = capture_frame()
         if frame is None:
             continue
-        plate = read_plate(frame)
-        if plate:
-            results.append(plate)
-        time.sleep(0.5)
-    
-    if not results:
-        return None
-    
-    # Retourner la plaque la plus frequente
-    from collections import Counter
-    most_common = Counter(results).most_common(1)[0][0]
-    print(f"[OCR] Resultat final: {most_common} ({len(results)}/{max_attempts} lectures)")
-    return most_common
 
-# ===== VERIFICATION API =====
+        plate, conf = read_plate_from_frame(frame)
+        if plate:
+            readings.append((plate, conf))
+            print(f"[ALPR] Lecture {i+1}/{max_attempts}: {plate} ({conf:.2f})")
+
+        time.sleep(0.3)
+
+    if not readings:
+        print("[ALPR] Aucune plaque détectée après toutes les tentatives")
+        return None
+
+    # Vote pondéré par la confiance (meilleur qu'un simple comptage)
+    vote_scores = Counter()
+    for plate, conf in readings:
+        vote_scores[plate] += conf
+
+    best = vote_scores.most_common(1)[0][0]
+    n    = sum(1 for p, _ in readings if p == best)
+    print(f"[ALPR] Résultat final: {best} ({n}/{len(readings)} lectures)")
+    return best
+
+# ===== VÉRIFICATION API =====
 def verify_plate(numero):
     try:
         response = requests.post(
@@ -140,70 +150,71 @@ def verify_plate(numero):
             timeout=5
         )
         data = response.json()
-        print(f"[API] Plaque {numero}: {data.get('message', 'Erreur')}")
+        print(f"[API] {numero}: {data.get('message', 'Erreur')}")
         return data.get("authorized", False)
     except Exception as e:
         print(f"[API] Erreur: {e}")
         return False
 
+# ===== TRAITEMENT VÉHICULE (dans un thread séparé) =====
+def handle_vehicle(ser):
+    """
+    Traitement complet : capture → détection → OCR → API → portail.
+    Exécuté dans un thread pour ne pas bloquer la lecture du port série.
+    """
+    frame = capture_frame()
+    if frame is None:
+        print("[ERREUR] Impossible de capturer l'image")
+        return
+
+    if not detect_vehicle(frame):
+        print("[FILTRE] Pas de véhicule confirmé, ignoré.")
+        return
+
+    print("[CONTOUR] Véhicule confirmé devant le portail")
+
+    plate = read_plate_multi(max_attempts=5)
+
+    if plate is None:
+        print("[ALPR] Impossible de lire la plaque")
+        return
+
+    authorized = verify_plate(plate)
+
+    if authorized:
+        print(f"[PORTAIL] {plate} → AUTORISÉE — Ouverture!")
+        if ser:
+            ser.write(b'1')
+    else:
+        print(f"[PORTAIL] {plate} → REFUSÉE — Pas d'ouverture")
+
 # ===== PROGRAMME PRINCIPAL =====
 def main():
     print("=" * 50)
-    print("   EASYPORTAL - Systeme de detection")
-    print("   Detection de contour + OCR + API")
+    print("   EASYPORTAL — fast-alpr (YOLOv8-tiny + PaddleOCR)")
+    print("   Optimisé Raspberry Pi 4")
     print("=" * 50)
 
-    # Initialiser la liaison serie avec Arduino
     try:
         ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=1)
-        time.sleep(2)  # Attendre initialisation Arduino
-        print(f"[SERIE] Connecte sur {SERIAL_PORT}")
+        time.sleep(2)  # Attendre l'initialisation de l'Arduino
+        print(f"[SERIE] Connecté sur {SERIAL_PORT}")
     except Exception as e:
         print(f"[SERIE] Erreur: {e}")
         ser = None
 
-    print("[SYSTEME] En attente de detection...")
-    print("")
+    print("[SYSTEME] En attente de détection...\n")
 
     while True:
-        # Lire les messages de l Arduino
         if ser and ser.in_waiting > 0:
             line = ser.readline().decode('utf-8', errors='ignore').strip()
-            
+
             if "VOITURE DETECTEE" in line:
-                print("\n[CAPTEUR] Objet detecte par infrarouge!")
-                
-                # Etape 1 : Capturer une image
-                frame = capture_frame()
-                if frame is None:
-                    print("[ERREUR] Impossible de capturer l image")
-                    continue
-
-                # Etape 2 : Confirmer la presence avec detection de contour
-                detected, bbox = detect_contour(frame)
-                
-                if not detected:
-                    print("[CONTOUR] Aucun objet significatif. Ignore.")
-                    continue
-
-                print("[CONTOUR] Objet confirme devant le portail")
-
-                # Etape 3 : Lire la plaque (plusieurs tentatives)
-                plate = read_plate_multi(max_attempts=3)
-                
-                if plate is None:
-                    print("[OCR] Impossible de lire la plaque")
-                    continue
-
-                # Etape 4 : Verifier en BDD via API
-                authorized = verify_plate(plate)
-
-                if authorized:
-                    print(f"[PORTAIL] Plaque {plate} AUTORISEE - Ouverture!")
-                    if ser:
-                        ser.write(b'1')
-                else:
-                    print(f"[PORTAIL] Plaque {plate} REFUSEE - Pas d ouverture")
+                print("\n[CAPTEUR] Signal infrarouge reçu!")
+                # Thread séparé : la boucle série reste réactive pendant le traitement
+                t = threading.Thread(target=handle_vehicle, args=(ser,))
+                t.daemon = True
+                t.start()
 
         time.sleep(0.1)
 
