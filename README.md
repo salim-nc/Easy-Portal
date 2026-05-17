@@ -41,6 +41,9 @@ Le système repose sur une infrastructure réseau distribuée :
 * **Modes d'Accès :** Distinction entre accès "Total" (ouverture pour tout véhicule) et "Réduit" (uniquement véhicule lié au compte).
 * **Supervision Web :** Interface pour gérer les plaques autorisées (import CSV) et consulter l'historique des passages.
 * **Sécurité :** Liste noire des véhicules interdits et journalisation complète des événements.
+  
+### 4.Schéma éléctronique
+[easyportal_montage.pdf](https://github.com/user-attachments/files/27903904/easyportal_montage.pdf)
 
 ---
 *Projet technique E6 - Académies de Créteil, Paris, Versailles - Session 2025/2026.*
