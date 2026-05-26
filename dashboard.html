@@ -68,6 +68,136 @@
             gap: 40px;
         }
 
+        /* ==============================
+           BOUTON PORTAIL + MESSAGE
+        ============================== */
+        .portal-btn-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* Message au-dessus du bouton */
+        .portal-status-msg {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 8px 18px;
+            border-radius: 30px;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .portal-status-msg.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .portal-status-msg.opening {
+            background: rgba(95, 46, 234, 0.12);
+            color: #5f2eea;
+            border: 1.5px solid rgba(95, 46, 234, 0.35);
+        }
+
+        .portal-status-msg.opening::before {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #5f2eea;
+            margin-right: 8px;
+            animation: pulseDot 1s ease-in-out infinite;
+            vertical-align: middle;
+        }
+
+        .portal-status-msg.success-open {
+            background: rgba(16, 185, 129, 0.12);
+            color: #059669;
+            border: 1.5px solid rgba(16, 185, 129, 0.35);
+        }
+
+        .portal-status-msg.error-open {
+            background: rgba(239, 68, 68, 0.12);
+            color: #dc2626;
+            border: 1.5px solid rgba(239, 68, 68, 0.35);
+        }
+
+        /* ==============================
+           VIDEO CARD + OVERLAY ANALYSE
+        ============================== */
+        .video-card {
+            position: relative; /* nécessaire pour l'overlay */
+        }
+
+        /* Overlay par-dessus le flux vidéo */
+        .plate-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+            border-radius: 0 0 12px 12px;
+            pointer-events: none;
+            backdrop-filter: blur(6px);
+        }
+
+        .plate-overlay.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* États */
+        .plate-overlay.analysing {
+            background: rgba(20, 10, 50, 0.7);
+            color: #fff;
+        }
+
+        .plate-overlay.authorised {
+            background: rgba(16, 185, 129, 0.82);
+            color: #fff;
+        }
+
+        .plate-overlay.forbidden {
+            background: rgba(220, 38, 38, 0.82);
+            color: #fff;
+        }
+
+        /* Icône spinner pour l'analyse */
+        .plate-overlay .overlay-icon {
+            font-size: 18px;
+        }
+
+        .plate-overlay.analysing .overlay-icon {
+            display: inline-block;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.4; transform: scale(0.7); }
+        }
+
         /* FOOTER */
         .home-footer {
             background: rgba(20, 5, 45, 0.92);
@@ -186,17 +316,30 @@
 </header>
 
 <div class="dashboard-container">
-    <button class="open-btn" onclick="openPortal()">Ouvrir le portail</button>
-    
+
+    <!-- BOUTON PORTAIL avec message au-dessus -->
+    <div class="portal-btn-wrapper">
+        <div class="portal-status-msg" id="portalStatusMsg"></div>
+        <button class="open-btn" id="openPortalBtn" onclick="handleOpenPortal()">Ouvrir le portail</button>
+    </div>
+
+    <!-- CARTE VIDÉO avec overlay statut analyse -->
     <div class="video-card">
         <div class="video-wrapper" style="overflow: hidden;">
-            <iframe 
+            <iframe
                 src="http://172.16.15.29:8000/stream.html"
                 scrolling="no"
                 style="overflow: hidden; border: none; display: block; margin-top: -60px;">
             </iframe>
         </div>
+
+        <!-- Overlay analyse plaque -->
+        <div class="plate-overlay" id="plateOverlay">
+            <span class="overlay-icon" id="overlayIcon">⟳</span>
+            <span id="overlayText">Analyse en cours…</span>
+        </div>
     </div>
+
 </div>
 
 <footer class="home-footer">
@@ -237,6 +380,9 @@
 <script src="assets/js/activity.js"></script>
 
 <script>
+// ==============================
+// INIT PAGE
+// ==============================
 document.addEventListener("DOMContentLoaded", function() {
 
     const logoutBtn = document.getElementById("logoutBtn");
@@ -260,7 +406,142 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById("userInitial").textContent = "A";
         }
     }
+
+    // Écoute les événements SSE / WebSocket du système embarqué
+    // pour mettre à jour l'overlay analyse de plaque.
+    // Remplace l'URL ci-dessous par ton endpoint réel si besoin.
+    listenToPlateEvents();
 });
+
+// ==============================
+// OUVERTURE PORTAIL — AVEC MESSAGE
+// ==============================
+async function handleOpenPortal() {
+    const btn = document.getElementById("openPortalBtn");
+    const msg = document.getElementById("portalStatusMsg");
+
+    // Afficher "Ouverture en cours…"
+    msg.textContent = "⏳ Ouverture en cours…";
+    msg.className = "portal-status-msg opening visible";
+    btn.disabled = true;
+
+    try {
+        await openPortal(); // fonction existante dans app.js
+
+        // Succès
+        msg.textContent = "✓ Portail ouvert";
+        msg.className = "portal-status-msg success-open visible";
+
+    } catch (err) {
+        // Erreur
+        msg.textContent = "✗ Erreur d'ouverture";
+        msg.className = "portal-status-msg error-open visible";
+    } finally {
+        btn.disabled = false;
+
+        // Cacher le message après 4 secondes
+        setTimeout(function() {
+            msg.classList.remove("visible");
+        }, 4000);
+    }
+}
+
+// ==============================
+// OVERLAY ANALYSE DE PLAQUE
+// Appelé par ton backend (SSE, WebSocket, ou polling).
+// API attendue : { status: "analysing" | "authorised" | "forbidden", plate: "AA-123-BB" }
+// ==============================
+function showPlateOverlay(status, plate) {
+    const overlay  = document.getElementById("plateOverlay");
+    const icon     = document.getElementById("overlayIcon");
+    const text     = document.getElementById("overlayText");
+
+    // Reset classes
+    overlay.className = "plate-overlay";
+
+    if (status === "analysing") {
+        icon.textContent  = "⟳";
+        text.textContent  = "Analyse en cours…";
+        overlay.classList.add("analysing", "visible");
+
+    } else if (status === "authorised") {
+        icon.textContent  = "✓";
+        text.textContent  = plate ? "Accès autorisé — " + plate : "Accès autorisé";
+        overlay.classList.add("authorised", "visible");
+        // Disparaît après 4 s
+        setTimeout(hidePlateOverlay, 4000);
+
+    } else if (status === "forbidden") {
+        icon.textContent  = "✗";
+        text.textContent  = plate ? "Accès interdit — " + plate : "Accès interdit";
+        overlay.classList.add("forbidden", "visible");
+        // Disparaît après 4 s
+        setTimeout(hidePlateOverlay, 4000);
+    }
+}
+
+function hidePlateOverlay() {
+    const overlay = document.getElementById("plateOverlay");
+    overlay.classList.remove("visible");
+}
+
+// ==============================
+// ÉCOUTE DES ÉVÉNEMENTS PLAQUE
+// Adapte cette fonction à ton backend :
+//   • SSE  → EventSource
+//   • WebSocket → new WebSocket(...)
+//   • Polling → setInterval + apiRequest
+// ==============================
+function listenToPlateEvents() {
+
+    // --- OPTION A : Server-Sent Events (recommandé) ---
+    // Décommente et adapte l'URL si ton backend expose un endpoint SSE :
+    /*
+    const evtSource = new EventSource(API_BASE + "/plate-events", {
+        headers: { Authorization: "Bearer " + localStorage.getItem("token") }
+    });
+
+    evtSource.addEventListener("plate_detected", function(e) {
+        const data = JSON.parse(e.data);
+        // data.status : "analysing" | "authorised" | "forbidden"
+        // data.plate  : numéro de plaque (optionnel)
+        showPlateOverlay(data.status, data.plate || "");
+    });
+
+    evtSource.onerror = function() {
+        console.warn("SSE déconnecté, tentative de reconnexion…");
+    };
+    */
+
+    // --- OPTION B : Polling toutes les 2 secondes ---
+    // Décommente si tu n'as pas de SSE/WebSocket :
+    /*
+    setInterval(async function() {
+        try {
+            const data = await apiRequest("/plate-status", "GET", null, true);
+            if (data && data.status) {
+                showPlateOverlay(data.status, data.plate || "");
+            }
+        } catch (err) {
+            console.debug("Polling plaque échoué:", err);
+        }
+    }, 2000);
+    */
+
+    // --- OPTION C : WebSocket ---
+    /*
+    const ws = new WebSocket("ws://172.16.15.29:PORT/ws");
+    ws.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        showPlateOverlay(data.status, data.plate || "");
+    };
+    */
+
+    // Pour tester visuellement sans backend, décommente ces 3 lignes :
+    // setTimeout(() => showPlateOverlay("analysing"), 1000);
+    // setTimeout(() => showPlateOverlay("authorised", "AB-123-CD"), 4000);
+    // setTimeout(() => showPlateOverlay("forbidden",  "ZZ-999-XX"), 9000);
+}
 </script>
 
 </body>

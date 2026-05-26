@@ -25,19 +25,15 @@ function checkTokenValidity() {
 // REQUÊTE API GÉNÉRIQUE SÉCURISÉE
 // ==============================
 async function apiRequest(endpoint, method = "GET", body = null, auth = false) {
-    // Vérifier que l'endpoint est valide
     if (!endpoint || !endpoint.startsWith("/")) {
         throw new Error("Endpoint invalide");
     }
 
-    const headers = { 
+    const headers = {
         "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest" // Prévention CSRF
+        "X-Requested-With": "XMLHttpRequest"
     };
 
-    // ==============================
-    // SÉCURITÉ - Ajouter le token JWT si authentification requise
-    // ==============================
     if (auth) {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -48,14 +44,8 @@ async function apiRequest(endpoint, method = "GET", body = null, auth = false) {
         headers["Authorization"] = "Bearer " + token;
     }
 
-    const options = {
-        method,
-        headers,
-    };
+    const options = { method, headers };
 
-    // ==============================
-    // SÉCURITÉ - Valider et sérialiser le body
-    // ==============================
     if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
         try {
             options.body = JSON.stringify(body);
@@ -66,13 +56,8 @@ async function apiRequest(endpoint, method = "GET", body = null, auth = false) {
 
     try {
         const response = await fetch(API_BASE + endpoint, options);
-
-        // Lire la réponse
         const data = await response.json().catch(() => null);
 
-        // ==============================
-        // SÉCURITÉ - Gérer les erreurs 401/403 (token expiré)
-        // ==============================
         if (response.status === 401 || response.status === 403) {
             console.warn("Token expiré ou invalide. Redirection vers login.");
             localStorage.removeItem("token");
@@ -88,7 +73,6 @@ async function apiRequest(endpoint, method = "GET", body = null, auth = false) {
 
         return data;
     } catch (err) {
-        // Gestion des erreurs réseau
         if (err.name === "TypeError" && err.message === "Failed to fetch") {
             console.error("Erreur réseau: Impossible de joindre l'API.");
             throw new Error("Impossible de joindre le serveur API.");
@@ -102,14 +86,8 @@ async function apiRequest(endpoint, method = "GET", body = null, auth = false) {
 // ==============================
 document.addEventListener("DOMContentLoaded", () => {
 
-    // ==============================
-    // SÉCURITÉ - Vérifier le token au chargement
-    // ==============================
     const token = localStorage.getItem("token");
     if (!token) {
-        // ==============================
-        // CORRECTION - Inclure "/" pour la racine du site
-        // ==============================
         const path = window.location.pathname;
         const isPublic = path === "/" ||
                          path.includes("index.html") ||
@@ -122,22 +100,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ==============================
-    // GESTION DE LA DÉCONNEXION
-    // ==============================
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) {
         logoutBtn.addEventListener("click", () => {
-            // Supprimer le token de manière sécurisée
             localStorage.removeItem("token");
-            // Redirection sécurisée
             window.location.replace("index.html");
         });
     }
 
-    // ==============================
-    // SÉCURITÉ - Tracking automatique des actions
-    // ==============================
     if (token) {
         document.querySelectorAll("button[data-track]").forEach(btn => {
             btn.addEventListener("click", async () => {
@@ -146,7 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     await apiRequest("/activity", "POST", { action: actionName }, true);
                 } catch (err) {
                     console.error("Erreur tracking:", err);
-                    // Silencieux - ne pas bloquer l'action
                 }
             });
         });
@@ -178,24 +147,20 @@ async function verifyToken() {
 // ==============================
 // OUVERTURE PORTAIL SÉCURISÉE
 // ==============================
+// MODIFIÉ : on laisse l'erreur remonter (throw)
+// pour que handleOpenPortal() dans dashboard.html puisse l'attraper.
 async function openPortal() {
-    // Vérifier l'authentification
-    if (!checkTokenValidity()) return;
+    if (!checkTokenValidity()) throw new Error("Non authentifié");
 
-    try {
-        await apiRequest("/portal/open", "POST", null, true);
-        console.log("Portail ouvert avec succès");
-    } catch (err) {
-        console.error("Erreur ouverture portail:", err);
-        alert("Erreur : " + sanitizeHTML(err.message));
-    }
+    // Appel API — l'erreur éventuelle remonte au caller
+    await apiRequest("/portal/open", "POST", null, true);
+    console.log("Portail ouvert avec succès");
 }
 
 // ==============================
 // CHARGEMENT DES LOGS SÉCURISÉ
 // ==============================
 async function loadLogs() {
-    // Vérifier l'authentification
     if (!checkTokenValidity()) return;
 
     try {
@@ -210,10 +175,7 @@ async function loadLogs() {
 
         logsArray.forEach(log => {
             const tr = document.createElement("tr");
-            // ==============================
-            // SÉCURITÉ - Sanitizer les données avant insertion dans le DOM
-            // ==============================
-            tr.innerHTML = 
+            tr.innerHTML =
                 "<td>" + sanitizeHTML(log.date || "") + "</td>" +
                 "<td>" + sanitizeHTML(log.user || "") + "</td>" +
                 "<td>" + sanitizeHTML(log.action || "") + "</td>";
@@ -227,7 +189,7 @@ async function loadLogs() {
 }
 
 // ==============================
-// AFFICHAGE DES MESSAGES - MODIFIÉ POUR RESTER LONGTEMPS
+// AFFICHAGE DES MESSAGES
 // ==============================
 function showMessage(elementId, message, type) {
     const el = document.getElementById(elementId);
@@ -236,7 +198,6 @@ function showMessage(elementId, message, type) {
     el.textContent = message;
     el.className = `message ${type}`;
 
-    // Les messages restent 30 secondes (30000 ms)
     setTimeout(() => {
         el.className = "message";
     }, 30000);
@@ -250,7 +211,7 @@ const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 function resetInactivityTimer() {
     clearTimeout(inactivityTimer);
-    
+
     const token = localStorage.getItem("token");
     if (token) {
         inactivityTimer = setTimeout(() => {
@@ -261,7 +222,6 @@ function resetInactivityTimer() {
     }
 }
 
-// Réinitialiser le timer sur chaque interaction
 if (localStorage.getItem("token")) {
     document.addEventListener("click", resetInactivityTimer);
     document.addEventListener("keypress", resetInactivityTimer);
