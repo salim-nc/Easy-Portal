@@ -3,7 +3,7 @@ services:
     build: ./api
     container_name: easyportal-api
     ports:
-      - "3000:3000"
+      - "3000:3000" # Corrigé ici pour correspondre à ton server.js
     env_file:
       - ./api/.env
     restart: unless-stopped

@@ -1,23 +1,63 @@
 const express = require('express');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 require('dotenv').config();
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000; // Forcé sur le port 3003 comme demandé
+
+// Configuration de Swagger
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'API Easy Portal',
+      version: '1.0.0',
+      description: 'Documentation interactive de l\'API avec support de l\'authentification JWT',
+    },
+    servers: [
+      {
+        url: `http://localhost:${PORT}`,
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Entre ton token JWT sous la forme : <MonToken>',
+        },
+      },
+    },
+  },
+  apis: ['./routes/*.js'], 
+};
+
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 // Logger les requetes
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
+
+// Route pour la documentation Swagger (placée avant la 404)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
 // Import des routes
 const authRoutes = require('./routes/authroutes');
 const plaqueRoutes = require('./routes/plaqueroutes');
 const portalRoutes = require('./routes/portalroutes');
 const userRoutes = require('./routes/userroutes');
 const logRoutes = require('./routes/logroutes');
+
 // Route de base
 app.get('/', (req, res) => {
   res.json({
@@ -29,16 +69,19 @@ app.get('/', (req, res) => {
       plaques: '/api/plaques',
       portal: '/api/portal',
       users: '/api/users',
-      logs: '/api/logs'
+      logs: '/api/logs',
+      documentation: '/api-docs'
     }
   });
 });
+
 // Routes de l'API
 app.use('/api/auth', authRoutes);
 app.use('/api/plaques', plaqueRoutes);
 app.use('/api/portal', portalRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/logs', logRoutes);
+
 // Route 404
 app.use((req, res) => {
   res.status(404).json({
@@ -46,6 +89,7 @@ app.use((req, res) => {
     message: 'Route non trouvee'
   });
 });
+
 // Gestion des erreurs globales
 app.use((err, req, res, next) => {
   console.error('Erreur:', err);
@@ -54,36 +98,16 @@ app.use((err, req, res, next) => {
     message: err.message || 'Erreur serveur interne'
   });
 });
+
 // Demarrage du serveur
 app.listen(PORT, () => {
   console.log('╔═══════════════════════════════════════╗');
-  console.log('║     EASY PORTAL API SERVER            ║');
+  console.log('║     EASY PORTAL API & SWAGGER         ║');
   console.log('╚═══════════════════════════════════════╝');
   console.log(`Serveur demarre sur le port ${PORT}`);
-  console.log(`URL: http://localhost:${PORT}`);
-  console.log('');
-  console.log('Endpoints disponibles:');
-  console.log('  AUTH:');
-  console.log('  - POST   /api/auth/login/admin');
-  console.log('  - POST   /api/auth/login/user');
-  console.log('  - POST   /api/auth/register');
-  console.log('  PLAQUES:');
-  console.log('  - GET    /api/plaques');
-  console.log('  - POST   /api/plaques');
-  console.log('  - PUT    /api/plaques/:id');
-  console.log('  - DELETE /api/plaques/:id');
-  console.log('  - POST   /api/plaques/verify');
-  console.log('  - POST   /api/plaques/import-csv');
-  console.log('  - POST   /api/plaques/import-csv-blacklist');
-  console.log('  - GET    /api/plaques/export-csv');
-  console.log('  - GET    /api/plaques/export-csv-blacklist');
-  console.log('  PORTAIL:');
-  console.log('  - POST   /api/portal/open');
-  console.log('  - POST   /api/portal/open-by-plaque');
-  console.log('  UTILISATEURS:');
-  console.log('  - GET    /api/users');
-  console.log('  LOGS:');
-  console.log('  - GET    /api/logs');
+  console.log(`URL locale: http://localhost:${PORT}`);
+  console.log(`📖 Documentation: http://localhost:${PORT}/api-docs`);
   console.log('');
 });
+
 module.exports = app;
