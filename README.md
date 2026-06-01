@@ -39,7 +39,7 @@ La base de données MySQL est hébergée séparément et accessible via les vari
 Si Docker n'est pas encore installé, exécuter la commande officielle suivante :
 
 ```bash
-curl -fsSL https://get.docker.com | sh
+curl -fsSL [https://get.docker.com](https://get.docker.com) | sh
 ```
 
 Cette commande installe automatiquement Docker Engine ainsi que Docker Compose sur Raspberry Pi OS. Une fois l'installation terminée, ajouter l'utilisateur courant au groupe Docker pour éviter d'avoir à utiliser `sudo` à chaque commande :
@@ -124,9 +124,27 @@ Capteur IR → Arduino → Service portail (FastAlpr)
              Refusé  → Log + Aucune action
 ```
 
+## 📱 Application Android
+
+L'application EasyPortal est directement installée sur la tablette de test. Elle permet aux utilisateurs et aux administrateurs de contrôler le portail et de suivre le flux vidéo à distance.
+
+### 🛠️ 1. Prérequis pour le fonctionnement
+Pour que l'application puisse communiquer avec le reste du système, deux conditions sont indispensables :
+* **Connexion Réseau :** La tablette doit impérativement être connectée au **même réseau Wi-Fi** que la machine (Raspberry Pi) qui héberge l'API Node.js et la caméra IP.
+* **Serveur Actif :** L'API Node.js globale du projet doit être lancée et opérationnelle sur le réseau.
+
+### 🚀 2. Lancement et Utilisation
+1. Allumez la tablette et lancez l'application **EasyPortal**.
+2. Sur l'écran de connexion, cochez le bouton correspondant à votre rôle (**Utilisateur** ou **Admin**).
+3. Entrez vos identifiants de test pour accéder à votre interface.
+
+### ⚠️ 3. Point d'attention : Vérification des adresses IP
+Si l'application affiche une erreur de type *« Serveur injoignable »* lors de la connexion ou de l'ouverture :
+* Vérifiez que l'adresse IP locale de la machine hébergeant l'API (`172.16.15.29`) n'a pas changé (le DHCP pouvant attribuer une nouvelle IP d'un jour à l'autre).
+
 ## 📁 Structure du Projet
 
-```
+```text
 easyportal/
 ├── api/                     # Service API Node.js
 │   ├── controllers/
