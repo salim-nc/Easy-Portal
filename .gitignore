@@ -1,0 +1,16 @@
+# Node
+api/node_modules/
+api/.env
+api/npm-debug.log
+
+# Python
+camera/__pycache__/
+camera/*.pyc
+camera/.env
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+.vscode/
