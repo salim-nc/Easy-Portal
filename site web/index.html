@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EasyPortal</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: linear-gradient(-45deg, #ffffff, #dcd0ff, #e0f2ff, #b392ff);
+            background-size: 400% 400%;
+            animation: gradientMovement 15s ease infinite;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        .center {
+            /* Force le conteneur principal à prendre toute la hauteur de l'écran pour cacher le footer */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        @keyframes gradientMovement {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .center-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Permet de descendre globalement le texte et l'image un peu plus bas sur la page */
+            margin-top: 10vh; 
+        }
+
+        .center-group h1 {
+            font-size: 40px;
+            color: #5f2eea;
+            margin: 0;
+            /* Rapproche violemment le texte de l'image (écrase l'espace transparent de l'image) */
+            margin-bottom: -30px; 
+            position: relative;
+            z-index: 2; /* Garde le texte au premier plan */
+        }
+
+        .center-bg-logo {
+            width: 420px;
+            opacity: 0.18;
+            pointer-events: none;
+            user-select: none;
+            mix-blend-mode: multiply;
+        }
+
+        .home-footer {
+            background: rgba(20, 5, 45, 0.92);
+            backdrop-filter: blur(6px);
+            color: #fff;
+            padding: 10px 60px 8px;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 0;
+            margin: 0;
+        }
+
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .footer-brand .brand-name {
+            font-size: 13px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #b392ff, #1e90ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .footer-brand .brand-year {
+            font-size: 11px;
+            color: rgba(255,255,255,0.75);
+            letter-spacing: 0.08em;
+        }
+
+        .footer-info {
+            display: flex;
+            gap: 36px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .footer-col {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .footer-col .col-title {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .footer-col .col-value {
+            font-size: 12px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .footer-team {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .team-badge {
+            background: rgba(179, 146, 255, 0.2);
+            border: 1px solid rgba(179, 146, 255, 0.5);
+            color: #d8c4ff;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 9px;
+            border-radius: 20px;
+        }
+
+        .footer-bottom {
+            padding-top: 6px;
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.4;
+        }
+
+        .footer-bottom span {
+            color: #c9b0ff;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <a class="logo" href="index.html" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
+        <span>EasyPortal</span>
+    </a>
+    <nav>
+        <button onclick="window.location.href='a-propos.html'">À propos</button>
+        <button onclick="window.location.href='login.html'">Connexion</button>
+    </nav>
+</header>
+
+<div class="center">
+    <div class="center-group">
+        <h1>Bienvenue sur EasyPortal</h1>
+        <img src="portail-acceuil.png" alt="" class="center-bg-logo">
+    </div>
+</div>
+
+<footer class="home-footer">
+    <div class="footer-top">
+        <div class="footer-brand">
+            <span class="brand-name">EasyPortal</span>
+            <span class="brand-year">Projet 2026</span>
+        </div>
+        <div class="footer-info">
+            <div class="footer-col">
+                <span class="col-title">Formation</span>
+                <span class="col-value">BTS CIEL — 2ème année</span>
+            </div>
+            <div class="footer-col">
+                <span class="col-title">Établissement</span>
+                <span class="col-value">Lycée Jean Rostand</span>
+                <span class="col-value" style="font-weight:400; font-size:13px; color:rgba(255,255,255,0.5);">Villepinte</span>
+            </div>
+            <div class="footer-col">
+                <span class="col-title">Équipe</span>
+                <div class="footer-team">
+                    <span class="team-badge">Salim</span>
+                    <span class="team-badge">Mohamed-Ameen</span>
+                    <span class="team-badge">Kheyreddine</span>
+                    <span class="team-badge">Walid</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        Ce site représente la vitrine web du projet <span>EasyPortal</span>, réalisé dans le cadre du BTS CIEL par
+        <span>Salim, Mohamed-Ameen, Kheyreddine et Walid</span>.
+    </div>
+</footer>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>

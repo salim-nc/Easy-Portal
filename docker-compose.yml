@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 services:
   api:
     build: ./api
@@ -53,3 +54,4 @@ services:
 networks:
   easyportal-network:
     driver: bridge
+=======

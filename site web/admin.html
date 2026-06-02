@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Administration - EasyPortal</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: linear-gradient(-45deg, #ffffff, #dcd0ff, #e0f2ff, #b392ff);
+            background-size: 400% 400%;
+            animation: gradientMovement 15s ease infinite;
+        }
+
+        @keyframes gradientMovement {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body onload="verifyToken(); initAdmin();">
+
+<header>
+    <a class="logo" href="index.html" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
+        <span>EasyPortal</span>
+    </a>
+    <nav>
+        <button onclick="window.location.href='dashboard.html'">Dashboard</button>
+        <button id="logoutBtn">Déconnexion</button>
+    </nav>
+</header>
+
+<div style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+
+    <!-- SECTION PLAQUES AUTORISÉES -->
+    <div style="margin-bottom: 50px;">
+        <h2 style="margin-bottom: 20px;">Plaques autorisées</h2>
+        
+        <div id="messageAuthAutorisees"></div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <label style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; display: flex; align-items: center;">
+                Import CSV
+                <input type="file" id="importAutorisees" style="display: none;" accept=".csv">
+            </label>
+            <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="exportAutorisees()">
+                Export CSV
+            </button>
+            <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="openAddAutoriseModal()">
+                Ajouter plaque
+            </button>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table id="tableAutorisees" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f3f4f6;">
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Nom</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Prénom</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Plaque 1</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Plaque 2</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyAutorisees"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION PLAQUES INTERDITES -->
+    <div>
+        <h2 style="margin-bottom: 20px;">Plaques interdites</h2>
+        
+        <div id="messageAuthInterdites"></div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <label style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; display: flex; align-items: center;">
+                Import CSV
+                <input type="file" id="importInterdites" style="display: none;" accept=".csv">
+            </label>
+            <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="exportInterdites()">
+                Export CSV
+            </button>
+            <button style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="openAddInterditeModal()">
+                Ajouter plaque
+            </button>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table id="tableInterdites" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f3f4f6;">
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Plaque</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Motif</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Date ajout</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyInterdites"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL AJOUTER PLAQUE AUTORISÉE -->
+<div id="modalAddAutorisee" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div style="background-color: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <h3 style="margin-bottom: 20px;">Ajouter une plaque autorisée</h3>
+        <form id="formAddAutorisee">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nom</label>
+                <input type="text" id="nomAutorisee" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Prénom</label>
+                <input type="text" id="prenomAutorisee" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Plaque 1</label>
+                <input type="text" id="plaque1Autorisee" placeholder="Ex: AA-123-BB" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Plaque 2 (optionnel)</label>
+                <input type="text" id="plaque2Autorisee" placeholder="Ex: CC-456-DD" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" style="padding: 10px 20px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="closeModal('modalAddAutorisee')">Annuler</button>
+                <button type="submit" style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Ajouter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL AJOUTER PLAQUE INTERDITE -->
+<div id="modalAddInterdite" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div style="background-color: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <h3 style="margin-bottom: 20px;">Ajouter une plaque interdite</h3>
+        <form id="formAddInterdite">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Plaque</label>
+                <input type="text" id="plaqueInterdite" placeholder="Ex: AA-123-BB" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Motif</label>
+                <input type="text" id="motifInterdite" placeholder="Ex: Véhicule non autorisé" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Date ajout</label>
+                <input type="date" id="dateInterdite" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;" required>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" style="padding: 10px 20px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="closeModal('modalAddInterdite')">Annuler</button>
+                <button type="submit" style="padding: 10px 20px; background: linear-gradient(45deg, #5f2eea, #1e90ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Ajouter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/activity.js"></script>
+<script src="assets/js/admin.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            window.location.replace("index.html");
+        });
+    }
+});
+</script>
+
+</body>
+</html>

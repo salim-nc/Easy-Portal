@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard - EasyPortal</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: linear-gradient(-45deg, #ffffff, #dcd0ff, #e0f2ff, #b392ff);
+            background-size: 400% 400%;
+            animation: gradientMovement 15s ease infinite;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes gradientMovement {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .video-wrapper iframe {
+            overflow: hidden;
+            border: none;
+            display: block;
+        }
+
+        .user-badge-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 15px;
+            padding: 8px 15px;
+            background: transparent;
+            border: none;
+            vertical-align: middle;
+        }
+
+        .user-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #5f2eea, #1e90ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #5f2eea;
+        }
+
+        .dashboard-container {
+            flex: 1;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            min-height: calc(100vh - 75px);
+            padding: 0 40px;
+            gap: 40px;
+        }
+
+        /* ==============================
+           BOUTON PORTAIL + MESSAGE
+        ============================== */
+        .portal-btn-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .portal-status-msg {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            padding: 11px 20px;
+            border-radius: 3px;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            pointer-events: none;
+            white-space: nowrap;
+            min-width: 230px;
+            text-align: center;
+        }
+
+        .portal-status-msg.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .portal-status-msg.opening {
+            background: rgba(95, 46, 234, 0.07);
+            color: #5f2eea;
+            border-left: 3px solid #5f2eea;
+        }
+
+        .portal-status-msg.success-open {
+            background: rgba(16, 185, 129, 0.07);
+            color: #059669;
+            border-left: 3px solid #059669;
+        }
+
+        .portal-status-msg.error-open {
+            background: rgba(220, 38, 38, 0.07);
+            color: #dc2626;
+            border-left: 3px solid #dc2626;
+        }
+
+        /* ==============================
+           VIDEO CARD + OVERLAY ANALYSE
+        ============================== */
+        .video-card {
+            position: relative;
+        }
+
+        .plate-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 14px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            pointer-events: none;
+            backdrop-filter: blur(14px);
+        }
+
+        .plate-overlay.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .plate-overlay.analysing  { background: rgba(10, 5, 30, 0.72); }
+        .plate-overlay.authorised { background: rgba(4, 90, 60, 0.80); }
+        .plate-overlay.forbidden  { background: rgba(130, 15, 15, 0.80); }
+
+        .overlay-left {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .overlay-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.45);
+        }
+
+        .overlay-value {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            color: #fff;
+        }
+
+        .overlay-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+            flex-shrink: 0;
+        }
+
+        .plate-overlay.analysing .overlay-dot {
+            animation: pulseDot 1.3s ease-in-out infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.15; transform: scale(0.5); }
+        }
+
+        /* FOOTER */
+        .home-footer {
+            background: rgba(20, 5, 45, 0.92);
+            backdrop-filter: blur(6px);
+            color: #fff;
+            padding: 10px 60px 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .footer-brand .brand-name {
+            font-size: 13px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #b392ff, #1e90ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .footer-brand .brand-year {
+            font-size: 11px;
+            color: rgba(255,255,255,0.75);
+            letter-spacing: 0.08em;
+        }
+
+        .footer-info {
+            display: flex;
+            gap: 36px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .footer-col {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .footer-col .col-title {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .footer-col .col-value {
+            font-size: 12px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .footer-team {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .team-badge {
+            background: rgba(179, 146, 255, 0.2);
+            border: 1px solid rgba(179, 146, 255, 0.5);
+            color: #d8c4ff;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 9px;
+            border-radius: 20px;
+        }
+
+        .footer-bottom {
+            padding-top: 6px;
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.4;
+        }
+
+        .footer-bottom span {
+            color: #c9b0ff;
+        }
+    </style>
+</head>
+<body onload="verifyToken()">
+
+<header>
+    <a class="logo" href="index.html" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
+        <span>EasyPortal</span>
+    </a>
+    <nav>
+        <button onclick="window.location.href='logs.html'">Logs</button>
+        <button onclick="window.location.href='admin-users.html'">Création Utilisateurs</button>
+        <button onclick="window.location.href='import.html'">Import CSV</button>
+        <button onclick="window.location.href='export.html'">Export CSV</button>
+        <button onclick="window.location.href='gestion-plaques.html'">Gestion Plaques</button>
+        <button id="logoutBtn">Déconnexion</button>
+        <div class="user-badge-nav">
+            <div class="user-avatar" id="userInitial">A</div>
+            <span class="user-name" id="userName">admin@easyportal.com</span>
+        </div>
+    </nav>
+</header>
+
+<div class="dashboard-container">
+
+    <!-- BOUTON PORTAIL avec message au-dessus -->
+    <div class="portal-btn-wrapper">
+        <div class="portal-status-msg" id="portalStatusMsg"></div>
+        <button class="open-btn" id="openPortalBtn" onclick="handleOpenPortal()">Ouvrir le portail</button>
+    </div>
+
+    <!-- CARTE VIDÉO avec overlay statut analyse -->
+    <div class="video-card">
+        <div class="video-wrapper" style="overflow: hidden;">
+            <iframe
+                src="http://172.16.15.29:8000/stream.html"
+                scrolling="no"
+                style="overflow: hidden; border: none; display: block; margin-top: -60px;">
+            </iframe>
+        </div>
+
+        <!-- Overlay analyse plaque -->
+        <div class="plate-overlay" id="plateOverlay">
+            <div class="overlay-left">
+                <span class="overlay-label" id="overlayLabel">Lecture en cours</span>
+                <span class="overlay-value" id="overlayText">Analyse en cours</span>
+            </div>
+            <div class="overlay-dot" id="overlayDot"></div>
+        </div>
+    </div>
+
+</div>
+
+<footer class="home-footer">
+    <div class="footer-top">
+        <div class="footer-brand">
+            <span class="brand-name">EasyPortal</span>
+            <span class="brand-year">Projet 2026</span>
+        </div>
+        <div class="footer-info">
+            <div class="footer-col">
+                <span class="col-title">Formation</span>
+                <span class="col-value">BTS CIEL — 2ème année</span>
+            </div>
+            <div class="footer-col">
+                <span class="col-title">Établissement</span>
+                <span class="col-value">Lycée Jean Rostand</span>
+                <span class="col-value" style="font-weight:400; font-size:13px; color:rgba(255,255,255,0.5);">Villepinte</span>
+            </div>
+            <div class="footer-col">
+                <span class="col-title">Équipe</span>
+                <div class="footer-team">
+                    <span class="team-badge">Salim</span>
+                    <span class="team-badge">Mohamed-Ameen</span>
+                    <span class="team-badge">Kheyreddine</span>
+                    <span class="team-badge">Walid</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        Ce site représente la vitrine web du projet <span>EasyPortal</span>, réalisé dans le cadre du BTS CIEL par
+        <span>Salim, Mohamed-Ameen, Kheyreddine et Walid</span>.
+    </div>
+</footer>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/activity.js"></script>
+
+<script>
+// ==============================
+// INIT PAGE
+// ==============================
+document.addEventListener("DOMContentLoaded", function() {
+
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            window.location.replace("index.html");
+        });
+    }
+
+    const token = localStorage.getItem("token");
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            const email = payload.email || "admin@easyportal.com";
+            document.getElementById("userName").textContent = email;
+            document.getElementById("userInitial").textContent = email.charAt(0).toUpperCase();
+        } catch (e) {
+            document.getElementById("userName").textContent = "admin@easyportal.com";
+            document.getElementById("userInitial").textContent = "A";
+        }
+    }
+
+    // Écoute les événements SSE / WebSocket du système embarqué
+    // pour mettre à jour l'overlay analyse de plaque.
+    // Remplace l'URL ci-dessous par ton endpoint réel si besoin.
+    listenToPlateEvents();
+});
+
+// ==============================
+// OUVERTURE PORTAIL — AVEC MESSAGE
+// ==============================
+async function handleOpenPortal() {
+    const btn = document.getElementById("openPortalBtn");
+    const msg = document.getElementById("portalStatusMsg");
+
+    // 0s — Ouverture en cours
+    msg.textContent = "⏳ Ouverture en cours…";
+    msg.className = "portal-status-msg opening visible";
+    btn.disabled = true;
+
+    try {
+        await openPortal();
+
+        // 4s — Portail ouvert
+        setTimeout(function() {
+            msg.textContent = "✓ Portail ouvert";
+            msg.className = "portal-status-msg success-open visible";
+        }, 4000);
+
+        // 6s — Fermeture en cours (4s ouverture + 2s ouvert)
+        setTimeout(function() {
+            msg.textContent = "🔒 Fermeture en cours…";
+            msg.className = "portal-status-msg opening visible";
+        }, 6000);
+
+        // 10s — Message disparaît + bouton réactivé (6s + 4s fermeture)
+        setTimeout(function() {
+            msg.classList.remove("visible");
+            btn.disabled = false;
+        }, 10000);
+
+    } catch (err) {
+        msg.textContent = "✗ Erreur d'ouverture";
+        msg.className = "portal-status-msg error-open visible";
+        btn.disabled = false;
+        setTimeout(function() {
+            msg.classList.remove("visible");
+        }, 4000);
+    }
+}
+
+// ==============================
+// OVERLAY ANALYSE DE PLAQUE
+// Appelé par ton backend (SSE, WebSocket, ou polling).
+// API attendue : { status: "analysing" | "authorised" | "forbidden", plate: "AA-123-BB" }
+// ==============================
+function showPlateOverlay(status, plate) {
+    const overlay = document.getElementById("plateOverlay");
+    const label   = document.getElementById("overlayLabel");
+    const text    = document.getElementById("overlayText");
+
+    overlay.className = "plate-overlay";
+
+    if (status === "analysing") {
+        label.textContent = "Lecture en cours";
+        text.textContent  = "Analyse de la plaque";
+        overlay.classList.add("analysing", "visible");
+
+    } else if (status === "authorised") {
+        label.textContent = "Accès autorisé";
+        text.textContent  = plate ? plate : "Véhicule autorisé";
+        overlay.classList.add("authorised", "visible");
+        setTimeout(hidePlateOverlay, 4000);
+
+    } else if (status === "forbidden") {
+        label.textContent = "Accès refusé";
+        text.textContent  = plate ? plate : "Véhicule non autorisé";
+        overlay.classList.add("forbidden", "visible");
+        setTimeout(hidePlateOverlay, 4000);
+    }
+}
+
+function hidePlateOverlay() {
+    const overlay = document.getElementById("plateOverlay");
+    overlay.classList.remove("visible");
+}
+
+// ==============================
+// ÉCOUTE DES ÉVÉNEMENTS PLAQUE
+// Adapte cette fonction à ton backend :
+//   • SSE  → EventSource
+//   • WebSocket → new WebSocket(...)
+//   • Polling → setInterval + apiRequest
+// ==============================
+// Garde en mémoire le dernier log traité pour ne pas réafficher le même
+let lastLogId = null;
+
+function listenToPlateEvents() {
+    setInterval(async function() {
+        try {
+            // On récupère le log le plus récent
+            const data = await apiRequest("/portal/status", "GET", null, true);
+            if (!data || !data.data) return;
+
+            const logs = data.data.recent_activity;
+            if (!Array.isArray(logs) || logs.length === 0) return;
+
+            const last = logs[0];
+
+            // Si c'est le même log qu'avant, on ne fait rien
+            if (last.id === lastLogId) return;
+            lastLogId = last.id;
+
+            const action = (last.action || "").toLowerCase();
+
+            // Détection de l'état selon le contenu du log
+            if (action.includes("accès autorisé") || action.includes("ouverture auto")) {
+                // Extraire la plaque si présente dans le log
+                const match = action.match(/plaque\s([a-z0-9\-]+)/i);
+                const plate = match ? match[1].toUpperCase() : "";
+                showPlateOverlay("analysing");
+                setTimeout(function() {
+                    showPlateOverlay("authorised", plate);
+                }, 1500);
+
+            } else if (action.includes("accès refusé") || action.includes("accès refus")) {
+                const match = action.match(/plaque\s([a-z0-9\-]+)/i);
+                const plate = match ? match[1].toUpperCase() : "";
+                showPlateOverlay("analysing");
+                setTimeout(function() {
+                    showPlateOverlay("forbidden", plate);
+                }, 1500);
+            }
+
+        } catch (err) {
+            console.debug("Polling statut plaque échoué:", err);
+        }
+    }, 2000);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  easyportal:
+    build: .
+    container_name: easyportal
+    ports:
+      - "3001:3001"
+    restart: unless-stopped

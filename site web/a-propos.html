@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>À propos - EasyPortal</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        /* --- Styles du fond dynamique --- */
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: linear-gradient(-45deg, #ffffff, #dcd0ff, #e0f2ff, #b392ff);
+            background-size: 400% 400%;
+            animation: gradientMovement 15s ease infinite;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        @keyframes gradientMovement {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Suppression de la bande blanche du header */
+        header {
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        /* Conteneur de contenu avec effet de flou pour la lisibilité */
+        div.content {
+            padding: 40px;
+            max-width: 800px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+        }
+
+        h1, h3 {
+            margin-top: 20px;
+            margin-bottom: 15px;
+            color: #5f2eea; /* Rappel de la couleur du logo */
+        }
+
+        p {
+            margin-bottom: 25px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <a class="logo" href="index.html" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <img src="logo-siteweb.png" alt="EasyPortal Logo" class="logo-img">
+        <span>EasyPortal</span>
+    </a>
+    <nav>
+        <button onclick="window.location.href='index.html'">Accueil</button>
+    </nav>
+</header>
+
+<div class="content">
+    <h1>Conditions d'utilisation</h1>
+    <p>
+        EasyPortal est une solution dédiée à l'accès sécurisé aux véhicules via un portail automatisé.
+        Cette application est réservée exclusivement aux utilisateurs totaux, c'est-à-dire aux personnes
+        disposant d'un accès complet validé par l'établissement.
+    </p>
+
+    <h3>Accès au service</h3>
+    <p>
+        L'accès à EasyPortal est strictement limité aux utilisateurs totaux autorisés.
+        Toute connexion est protégée par authentification personnelle. Chaque utilisateur
+        est seul responsable de la confidentialité de ses identifiants et ne peut en aucun
+        cas les partager avec un tiers.
+    </p>
+
+    <h3>Données collectées</h3>
+    <p>
+        Dans le cadre de la sécurisation des accès aux véhicules, le système enregistre
+        les plaques d'immatriculation, les identifiants utilisateurs ainsi que les horaires
+        de passage. Ces données sont conservées à des fins de sécurité, de supervision et
+        de traçabilité.
+    </p>
+
+    <h3>Responsabilités</h3>
+    <p>
+        EasyPortal étant un système de contrôle d'accès aux véhicules en toute sécurité,
+        toute tentative d'accès frauduleux, de modification des données ou de contournement
+        du système entraînera une suspension immédiate et définitive de l'accès, sans préjudice
+        des poursuites légales éventuelles.
+    </p>
+
+    <h3>Acceptation</h3>
+    <p>
+        L'utilisation du service EasyPortal — conçu pour garantir un accès aux véhicules
+        en toute sécurité — implique l'acceptation pleine et entière des présentes conditions
+        d'utilisation, réservées aux seuls utilisateurs totaux de la plateforme.
+    </p>
+</div>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/activity.js"></script>
+
+</body>
+</html>
