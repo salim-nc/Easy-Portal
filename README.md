@@ -142,6 +142,25 @@ Pour que l'application puisse communiquer avec le reste du système, deux condit
 Si l'application affiche une erreur de type *« Serveur injoignable »* lors de la connexion ou de l'ouverture :
 * Vérifiez que l'adresse IP locale de la machine hébergeant l'API (`172.16.15.29`) n'a pas changé (le DHCP pouvant attribuer une nouvelle IP d'un jour à l'autre).
 
+## 🌐 Lancement et Accès au Site Web (Administration)
+
+Le site web d'administration permet de gérer la base de données, d'importer les fichiers CSV et de superviser les accès au portail.
+
+#### 🖥️ Connexion et Démarrage
+1. Connectez-vous en SSH au serveur avec l'identifiant dédié :
+   ```bash
+   ssh easyportal2026@172.16.15.65
+
+2. Lancez le conteneur Docker du site web dans le terminal :
+   ```bash
+   sudo docker-compose up -d
+
+3. Accès à l'Interface dans 
+   ```bash
+   https://172.16.15.65:3001/index.html
+
+4. Aller dans paramètres avancés, puis continuer vers le site 172.16.15.65 (dangereux)  
+
 ## 📁 Structure du Projet
 
 ```text
